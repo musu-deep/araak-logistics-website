@@ -5,7 +5,7 @@ const navLinks = [
   { label: 'الرئيسية', href: '#home' },
   { label: 'خدماتنا', href: '#services' },
   { label: 'تتبع الشحنة', href: '#track' },
-  { label: 'عن اراك', href: '#about' },
+  { label: 'عن اراك لوجستيك', href: '#about' },
   { label: 'الشركاء', href: '#partners' },
   { label: 'تواصل معنا', href: '#contact' },
 ];
