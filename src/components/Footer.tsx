@@ -10,7 +10,7 @@ const footerLinks = {
     { label: 'شحن جوي مخصص', href: '#services' },
   ],
   company: [
-    { label: 'عن لاراك لوجستيك', href: '#about' },
+    { label: 'عن اراك لوجستيك', href: '#about' },
     { label: 'شركاؤنا', href: '#partners' },
     { label: 'تتبع الشحنة', href: '#track' },
     { label: 'احصل على عرض سعر', href: '#quote' },
