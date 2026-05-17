@@ -14,48 +14,27 @@ const quickReplies = [
   { icon: Calculator, label: 'احسب التكلفة' },
 ];
 
-const knowledgeBase: [RegExp, string][] = [
-  [
-    /شحن|خدمات|ماذا تقدم/i,
-    'تقدم اراك لوجستيك خدمات متكاملة:\n• **B2B** – شحن للشركات والصناعات الثقيلة\n• **B2C** – تجارة إلكترونية وتوصيل للأفراد\n• **B2G** – تخليص جمركي للقطاع الحكومي\n• **B2Service** – خدمات ضيوف الرحمن وشحن جوي مخصص\n\nأي قطاع يهمك أكثر؟',
-  ],
-  [
-    /تتبع|tracking|رقم التتبع/i,
-    'يمكنك تتبع شحنتك بسهولة!\n\nاذهب لقسم **"تتبع الشحنة"** في الصفحة الرئيسية وأدخل رقم التتبع (مثال: ARK-2024-001).\n\nسيظهر لك:\n• الموقع الحالي للشحنة\n• تاريخ التسليم المتوقع\n• جميع محطات الرحلة',
-  ],
-  [
-    /جمارك|تخليص|customs/i,
-    'خدمات التخليص الجمركي تشمل:\n• التخليص في جميع الموانئ البحرية والجافة\n• المطارات والحدود البرية\n• الإعفاء الجمركي والاستيراد المؤقت\n• التعامل مع المواد الخطرة والمقيدة\n• استخراج التصاريح والتوثيق\n\nللحصول على عرض سعر متخصص، يرجى التواصل مع فريقنا.',
-  ],
-  [
-    /سعر|تكلفة|كم|عرض/i,
-    'نقدم نظام تسعير ديناميكي ومرن!\n\n**للشركات (B2B/B2G):**\nعقود سنوية مخصصة (SLA) مبنية على حجم العمليات.\n\n**للأفراد والتجارة الإلكترونية (B2C):**\nاحصل على عرض فوري من خلال قسم "طلب عرض سعر" وأدخل:\n• أبعاد الشحنة ووزنها\n• مكان الاستلام والتسليم\n• عدد القطع\n\nهل تريد الانتقال لنموذج طلب العرض الآن؟',
-  ],
-  [
-    /حج|عمرة|ضيوف الرحمن/i,
-    'خدمة ضيوف الرحمن من اراك لوجستيك:\n\n• نقل عفش وأمتعة الحجاج والمعتمرين\n• من المطارات والموانئ مباشرة\n• إلى مكة المكرمة والمدينة المنورة\n• City Terminal لوزن الأمتعة\n• إعادة الشحن عند المغادرة\n\nخدمة مستلهمة من نجاحات شركة UPH الراسخة في هذا المجال.',
-  ],
-  [
-    /تواصل|اتصال|contact|هاتف|جوال/i,
-    'يمكنك التواصل مع فريق اراك لوجستيك:\n\n📍 **المقر:** جدة، شارع التحلية\n📧 **البريد:** info@araak.org\n🌐 **الموقع:** www.araaklogistics.com\n\nأو استخدم نموذج التواصل في أسفل الصفحة، وسيرد عليك فريقنا خلال 24 ساعة.',
-  ],
-  [
-    /uph|يو بي اتش|مجموعة/i,
-    'اراك لوجستيك هي الذراع الرقمي واللوجستي لمجموعة **يو بي اتش (UPH)**.\n\nتدمج اراك بين:\n• البنية التحتية وخبرات UPH التشغيلية العميقة\n• الحلول الرقمية والابتكارية للجيل القادم\n\nهدفنا: تقديم محطة واحدة لكل الاحتياجات اللوجستية (One-Stop Shop).',
-  ],
-  [
-    /مرحبا|السلام|هلا|اهلا|مساء|صباح/i,
-    'أهلاً وسهلاً! أنا المساعد الذكي لـ اراك لوجستيك. 🚚\n\nيمكنني مساعدتك في:\n• معرفة خدماتنا اللوجستية\n• تتبع شحناتك\n• الاستفسار عن الأسعار والتخليص الجمركي\n\nما الذي تحتاج مساعدة فيه اليوم؟',
-  ],
-];
+// التعليمات الصارمة لتوجيه الذكاء الاصطناعي وتقييده بهوية الشركة وبياناتها المستقرة
+const SYSTEM_INSTRUCTION = `
+أنت "مساعد أراك الذكي"، الوكيل الافتراضي الرسمي لشركة "أراك لوجستيك" (Araak Logistics). 
+مهمتك هي الإجابة على استفسارات العملاء باحترافية، وود، وبصياغة ممتازة باللغة العربية.
 
-function getResponse(input: string): string {
-  const lower = input.toLowerCase();
-  for (const [pattern, response] of knowledgeBase) {
-    if (pattern.test(lower)) return response;
-  }
-  return 'شكراً لسؤالك! فريق اراك لوجستيك سيسعد بمساعدتك بشكل أفضل.\n\nيمكنك:\n• **اتصال مباشر:** info@araak.org\n• **طلب عرض سعر** من نموذج الطلب\n• أو اسألني عن: الشحن، التخليص، الأسعار، التتبع';
-}
+معلومات الشركة الأساسية التي يجب أن تعتمد عليها دائماً:
+1. الهوية والتبعية: أراك لوجستيك هي الذراع الرقمي واللوجستي لمجموعة يو بي اتش (UPH). تدمج بين البنية التحتية وخبرات UPH التشغيلية العميقة والحلول الرقمية والابتكارية (مفهوم المحطة الواحدة One-Stop Shop).
+2. خدمات الشحن اللوجستية:
+   - B2B: شحن للشركات والصناعات الثقيلة وعقود سنوية (SLA) مبنية على حجم العمليات.
+   - B2C: تجارة إلكترونية وتوصيل للأفراد (تعتمد على أبعاد الوزن، ومكان الاستلام والتسليم).
+   - B2G: تخليص جمركي ولوجستيات للقطاع الحكومي.
+   - B2Service / خدمات ضيوف الرحمن: شحن مخصص، نقل عفش وأمتعة الحجاج والمعتمرين من المطارات والموانئ مباشرة إلى مكة والمدينة، مع ميزة City Terminal لوزن الأمتعة وإعادة الشحن عند المغادرة (مستلهمة من نجاح UPH الراسخ).
+3. التتبع: يمكن تتبع الشحنات عبر قسم "تتبع الشحنة" بالصفحة الرئيسية باستخدام رقم التتبع (مثل ARK-2024-001).
+4. التخليص الجمركي: يشمل التخليص في جميع الموانئ البحرية والجافة، المطارات، الحدود البرية، الإعفاء الجمركي، التعامل مع المواد المقيدة، واستخراج التصاريح.
+5. معلومات التواصل: المقر الرئيسي في جدة (شارع التحلية)، البريد الإلكتروني: info@araak.org، الموقع: www.araaklogistics.com.
+
+قواعد عامة للرد:
+- حافظ على الاختصار والوضوح واستخدم النقاط (•) لترتيب النصوص الطويلة.
+- إذا سألك العميل عن أسعار محددة بالأرقام، اطلب منه استخدام نموذج "طلب عرض سعر" في الموقع أو تزويدك بالوزن والوجهة لمساعدته، وأخبره أن الأسعار ديناميكية ومرنة.
+- إذا سُئلت عن أمور خارج نطاق الخدمات اللوجستية أو شركة أراك، اعتذر بذكاء ووجه العميل للسؤال عما يخص الشحن والتخليص الجمركي.
+`;
 
 function now() {
   return new Date().toLocaleTimeString('ar-SA', { hour: '2-digit', minute: '2-digit' });
@@ -68,7 +47,7 @@ export default function AIAssistant() {
   const [messages, setMessages] = useState<Message[]>([
     {
       role: 'bot',
-      text: 'أهلاً! أنا مساعد اراك الذكي. كيف يمكنني مساعدتك في خدماتنا اللوجستية؟',
+      text: 'أهلاً! أنا مساعد اراك الذكي. كيف يمكنني مساعدتك في خدماتنا اللوجستية اليوم؟',
       time: now(),
     },
   ]);
@@ -81,18 +60,66 @@ export default function AIAssistant() {
     }
   }, [messages, open, minimized]);
 
-  const sendMessage = (text: string) => {
-    if (!text.trim()) return;
+  // دالة الاستدعاء المباشر لـ API
+  const fetchAIResponse = async (userText: string): Promise<string> => {
+    // 💡 ملاحظة مستقبلية لدمج "واعي": بمجرد أن يصبح واعي جاهزاً على سيرفرك، استبدل هذا الرابط برابط سيرفر واعي المباشر.
+    const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
+    
+    if (!apiKey) {
+      console.error("Gemini API Key is missing. Please check your environment variables.");
+      return 'عذراً، أواجه مشكلة مؤقتة في الاتصال بالخادم الرئيسي حالياً. يمكنك تكرار محاولتك أو مراسلتنا مباشرة عبر info@araak.org';
+    }
+
+    const API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
+
+    try {
+      const response = await fetch(API_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          contents: [
+            {
+              role: 'user',
+              parts: [
+                { text: `${SYSTEM_INSTRUCTION}\n\nسؤال المستخدم الحالي: ${userText}` }
+              ]
+            }
+          ],
+          generationConfig: {
+            temperature: 0.5, // درجة انضباط متوسطة لضمان التزام الذكاء الاصطناعي بالبيانات المعطاة وعدم الارتجال الخارجي
+            maxOutputTokens: 400
+          }
+        })
+      });
+
+      const data = await response.json();
+      const aiReply = data?.candidates?.[0]?.content?.parts?.[0]?.text;
+      
+      if (aiReply) {
+        return aiReply.trim();
+      } else {
+        throw new Error("Invalid API response format");
+      }
+    } catch (error) {
+      console.error("AI Request Error:", error);
+      return 'شكراً لسؤالك! أواجه صعوبة في معالجة الرد اللحظي الآن. يرجى محاولة طرح سؤالك مرة أخرى أو استخدام نموذج تواصل معنا بأسفل الصفحة.';
+    }
+  };
+
+  const sendMessage = async (text: string) => {
+    if (!text.trim() || typing) return;
+    
     const userMsg: Message = { role: 'user', text: text.trim(), time: now() };
     setMessages((prev) => [...prev, userMsg]);
     setInput('');
     setTyping(true);
 
-    setTimeout(() => {
-      const botMsg: Message = { role: 'bot', text: getResponse(text), time: now() };
-      setMessages((prev) => [...prev, botMsg]);
-      setTyping(false);
-    }, 900 + Math.random() * 600);
+    // استدعاء دالة الـ API والانتظار حتى انتهاء المعالجة الحية
+    const replyText = await fetchAIResponse(text.trim());
+    
+    const botMsg: Message = { role: 'bot', text: replyText, time: now() };
+    setMessages((prev) => [...prev, botMsg]);
+    setTyping(false);
   };
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -143,7 +170,7 @@ export default function AIAssistant() {
                 <p className="text-white font-cairo font-bold text-sm">مساعد اراك الذكي</p>
                 <div className="flex items-center gap-1.5">
                   <span className="w-2 h-2 rounded-full bg-success-400 animate-pulse" />
-                  <span className="text-white/70 font-cairo text-xs">متاح الآن</span>
+                  <span className="text-white/70 font-cairo text-xs">متاح الآن بذكاء حي</span>
                 </div>
               </div>
             </div>
@@ -206,7 +233,8 @@ export default function AIAssistant() {
                   <button
                     key={q.label}
                     onClick={() => sendMessage(q.label)}
-                    className="flex items-center gap-1.5 px-3 py-1.5 bg-neutral-50 border border-neutral-200 rounded-xl text-neutral-600 font-cairo text-xs whitespace-nowrap hover:border-brand-300 hover:text-brand-600 transition-all flex-shrink-0"
+                    disabled={typing}
+                    className="flex items-center gap-1.5 px-3 py-1.5 bg-neutral-50 border border-neutral-200 rounded-xl text-neutral-600 font-cairo text-xs whitespace-nowrap hover:border-brand-300 hover:text-brand-600 transition-all flex-shrink-0 disabled:opacity-50"
                   >
                     <q.icon size={12} />
                     {q.label}
@@ -220,8 +248,9 @@ export default function AIAssistant() {
                   type="text"
                   value={input}
                   onChange={(e) => setInput(e.target.value)}
-                  placeholder="اكتب سؤالك هنا..."
-                  className="flex-1 px-4 py-2.5 bg-neutral-50 border border-neutral-200 rounded-xl font-cairo text-sm text-neutral-900 placeholder-neutral-400 focus:outline-none focus:border-brand-400 focus:bg-white transition-all"
+                  placeholder={typing ? "جاري معالجة الرد اللوجستي..." : "اكتب سؤالك هنا..."}
+                  disabled={typing}
+                  className="flex-1 px-4 py-2.5 bg-neutral-50 border border-neutral-200 rounded-xl font-cairo text-sm text-neutral-900 placeholder-neutral-400 focus:outline-none focus:border-brand-400 focus:bg-white transition-all disabled:opacity-60"
                 />
                 <button
                   type="submit"
