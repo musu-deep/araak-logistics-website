@@ -14,49 +14,6 @@ const quickReplies = [
   { icon: Calculator, label: 'احسب التكلفة' },
 ];
 
-const knowledgeBase: [RegExp, string][] = [
-  [
-    /شحن|خدمات|ماذا تقدم/i,
-    'تقدم اراك لوجستيك خدمات متكاملة:\n• **B2B** – شحن للشركات والصناعات الثقيلة\n• **B2C** – تجارة إلكترونية وتوصيل للأفراد\n• **B2G** – تخليص جمركي للقطاع الحكومي\n• **B2Service** – خدمات ضيوف الرحمن وشحن جوي مخصص\n\nأي قطاع يهمك أكثر؟',
-  ],
-  [
-    /تتبع|tracking|رقم التتبع/i,
-    'يمكنك تتبع شحنتك بسهولة!\n\nاذهب لقسم **"تتبع الشحنة"** في الصفحة الرئيسية وأدخل رقم التتبع (مثال: ARK-2024-001).\n\nسيظهر لك:\n• الموقع الحالي للشحنة\n• تاريخ التسليم المتوقع\n• جميع محطات الرحلة',
-  ],
-  [
-    /جمارك|تخليص|customs/i,
-    'خدمات التخليص الجمركي تشمل:\n• التخليص في جميع الموانئ البحرية والجافة\n• المطارات والحدود البرية\n• الإعفاء الجمركي والاستيراد المؤقت\n• التعامل مع المواد الخطرة والمقيدة\n• استخراج التصاريح والتوثيق\n\nللحصول على عرض سعر متخصص، يرجى التواصل مع فريقنا.',
-  ],
-  [
-    /سعر|تكلفة|كم|عرض/i,
-    'نقدم نظام تسعير ديناميكي ومرن!\n\n**للشركات (B2B/B2G):**\nعقود سنوية مخصصة (SLA) مبنية على حجم العمليات.\n\n**للأفراد والتجارة الإلكترونية (B2C):**\nاحصل على عرض فوري من خلال قسم "طلب عرض سعر" وأدخل:\n• أبعاد الشحنة ووزنها\n• مكان الاستلام والتسليم\n• عدد القطع\n\nهل تريد الانتقال لنموذج طلب العرض الآن؟',
-  ],
-  [
-    /حج|عمرة|ضيوف الرحمن/i,
-    'خدمة ضيوف الرحمن من اراك لوجستيك:\n\n• نقل عفش وأمتعة الحجاج والمعتمرين\n• من المطارات والموانئ مباشرة\n• إلى مكة المكرمة والمدينة المنورة\n• City Terminal لوزن الأمتعة\n• إعادة الشحن عند المغادرة\n\nخدمة مستلهمة من نجاحات شركة UPH الراسخة في هذا المجال.',
-  ],
-  [
-    /تواصل|اتصال|contact|هاتف|جوال/i,
-    'يمكنك التواصل مع فريق اراك لوجستيك:\n\n📍 **المقر:** جدة، شارع التحلية\n📧 **البريد:** info@araak.org\n🌐 **الموقع:** www.araaklogistics.com\n\nأو استخدم نموذج التواصل في أسفل الصفحة، وسيرد عليك فريقنا خلال 24 ساعة.',
-  ],
-  [
-    /uph|يو بي اتش|مجموعة/i,
-    'اراك لوجستيك هي الذراع الرقمي واللوجستي لمجموعة **يو بي اتش (UPH)**.\n\nتدمج اراك بين:\n• البنية التحتية وخبرات UPH التشغيلية العميقة\n• الحلول الرقمية والابتكارية للجيل القادم\n\nهدفنا: تقديم محطة واحدة لكل الاحتياجات اللوجستية (One-Stop Shop).',
-  ],
-  [
-    /مرحبا|السلام|هلا|اهلا|مساء|صباح/i,
-    'أهلاً وسهلاً! أنا المساعد الذكي لـ اراك لوجستيك. 🚚\n\nيمكنني مساعدتك في:\n• معرفة خدماتنا اللوجستية\n• تتبع شحناتك\n• الاستفسار عن الأسعار والتخليص الجمركي\n\nما الذي تحتاج مساعدة فيه اليوم؟',
-  ],
-];
-
-function getResponse(input: string): string {
-  const lower = input.toLowerCase();
-  for (const [pattern, response] of knowledgeBase) {
-    if (pattern.test(lower)) return response;
-  }
-  return 'شكراً لسؤالك! فريق اراك لوجستيك سيسعد بمساعدتك بشكل أفضل.\n\nيمكنك:\n• **اتصال مباشر:** info@araak.org\n• **طلب عرض سعر** من نموذج الطلب\n• أو اسألني عن: الشحن، التخليص، الأسعار، التتبع';
-}
-
 function now() {
   return new Date().toLocaleTimeString('ar-SA', { hour: '2-digit', minute: '2-digit' });
 }
@@ -68,7 +25,7 @@ export default function AIAssistant() {
   const [messages, setMessages] = useState<Message[]>([
     {
       role: 'bot',
-      text: 'أهلاً! أنا مساعد اراك الذكي. كيف يمكنني مساعدتك في خدماتنا اللوجستية؟',
+      text: 'أهلاً! أنا مساعد اراك الذكي متاح الآن بذكاء حي. كيف يمكنني مساعدتك في خدماتنا اللوجستية اليوم؟',
       time: now(),
     },
   ]);
@@ -81,18 +38,41 @@ export default function AIAssistant() {
     }
   }, [messages, open, minimized]);
 
-  const sendMessage = (text: string) => {
+  // دالة الاتصال بالسيرفر المصغر الآمن (Vercel Serverless Function)
+  const fetchAIResponse = async (userText: string): Promise<string> => {
+    try {
+      const response = await fetch('/api/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ message: userText })
+      });
+
+      const data = await response.json();
+      
+      if (response.ok && data.reply) {
+        return data.reply.trim();
+      } else {
+        throw new Error(data.error || "Failed to fetch response from backend");
+      }
+    } catch (error) {
+      console.error("AI Request Error:", error);
+      return 'شكراً لسؤالك! أواجه صعوبة في معالجة الرد اللحظي الآن. يرجى محاولة طرح سؤالك مرة أخرى أو استخدام نموذج تواصل معنا بأسفل الصفحة.';
+    }
+  };
+
+  const sendMessage = async (text: string) => {
     if (!text.trim()) return;
     const userMsg: Message = { role: 'user', text: text.trim(), time: now() };
     setMessages((prev) => [...prev, userMsg]);
     setInput('');
     setTyping(true);
 
-    setTimeout(() => {
-      const botMsg: Message = { role: 'bot', text: getResponse(text), time: now() };
-      setMessages((prev) => [...prev, botMsg]);
-      setTyping(false);
-    }, 900 + Math.random() * 600);
+    // استدعاء الذكاء الاصطناعي الحي بدلاً من الردود الثابتة
+    const aiReplyText = await fetchAIResponse(text);
+    
+    const botMsg: Message = { role: 'bot', text: aiReplyText, time: now() };
+    setMessages((prev) => [...prev, botMsg]);
+    setTyping(false);
   };
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -143,7 +123,7 @@ export default function AIAssistant() {
                 <p className="text-white font-cairo font-bold text-sm">مساعد اراك الذكي</p>
                 <div className="flex items-center gap-1.5">
                   <span className="w-2 h-2 rounded-full bg-success-400 animate-pulse" />
-                  <span className="text-white/70 font-cairo text-xs">متاح الآن</span>
+                  <span className="text-white/70 font-cairo text-xs">متاح الآن بذكاء حي</span>
                 </div>
               </div>
             </div>
