@@ -26,8 +26,8 @@ export default async function handler(req, res) {
             return res.status(200).json({ reply: "عذراً، لم يتم العثور على مفتاح السيرفر GEMINI_API_KEY في لوحة Vercel." });
         }
 
-        // الرابط المعتمد عالمياً لنموذج فلاش عبر إصدار v1beta لإنهاء لغز المسارات المفقودة
-        const API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
+        // الانتقال إلى النموذج البروجكت المستقر والمفتوح لكافة الحسابات تلقائياً
+        const API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-pro:generateContent?key=${apiKey}`;
 
         const SYSTEM_INSTRUCTION = `أنت "مساعد أراك الذكي"، الوكيل الافتراضي الرسمي لشركة "أراك لوجستيك" (Araak Logistics). مهمتك هي الإجابة على استفسارات العملاء باحترافية، وود، وبصياغة ممتازة باللغة العربية وبإيجاز مناسب للمحادثات.
 معلومات الشركة الأساسية:
@@ -36,7 +36,6 @@ export default async function handler(req, res) {
 - خدماتنا تشمل: الشحن البري، الشحن البحري، الشحن الجوي، التخليص الجمركي، التخزين، وإدارة سلاسل الإمداد.
 - نغطي الشحن والتنقل بكفاءة عالية بين كافة مدن المملكة العربية السعودية (مثل الرياض، جدة، الدمام) بالإضافة للشحن الدولي.`;
 
-        // دمج آمن ومباشر للتعليمات مع رسالة المستخدم
         const combinedText = `${SYSTEM_INSTRUCTION}\n\nسؤال المستخدم الحالي للإجابة عليه فوراً:\n${userMessage}`;
 
         const apiResponse = await fetch(API_URL, {
