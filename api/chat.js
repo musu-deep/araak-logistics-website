@@ -1,5 +1,5 @@
 export default async function handler(req, res) {
-    // إعدادات CORS الشاملة والأكيدة لعدم حجب الرد في المتصفح
+    // إعدادات CORS الكاملة لضمان عبور البيانات للمتصفحات بأمان
     res.setHeader('Access-Control-Allow-Credentials', 'true');
     res.setHeader('Access-Control-Allow-Origin', '*');
     res.setHeader('Access-Control-Allow-Methods', 'GET,OPTIONS,PATCH,DELETE,POST,PUT');
@@ -14,6 +14,7 @@ export default async function handler(req, res) {
     }
 
     try {
+        // فك تشفير الـ body بأعلى درجات الأمان
         let body = req.body;
         if (typeof body === 'string') {
             body = JSON.parse(body);
@@ -26,8 +27,8 @@ export default async function handler(req, res) {
             return res.status(200).json({ reply: "عذراً، لم يتم العثور على مفتاح السيرفر GEMINI_API_KEY في لوحة Vercel." });
         }
 
-        // الرابط المباشر لنسخة جوجل المستقرة مع تمرير المفتاح
-        const API_URL = `https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
+        // الرابط الذهبي لنسخة v1 مع استدعاء الموديل بنسخته الكاملة المستقرة
+        const API_URL = `https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash-latest:generateContent?key=${apiKey}`;
 
         const SYSTEM_INSTRUCTION = `أنت "مساعد أراك الذكي"، الوكيل الافتراضي الرسمي لشركة "أراك لوجستيك" (Araak Logistics). مهمتك هي الإجابة على استفسارات العملاء باحترافية، وود، وبصياغة ممتازة باللغة العربية وبإيجاز مناسب للمحادثات.
 معلومات الشركة الأساسية:
@@ -36,9 +37,10 @@ export default async function handler(req, res) {
 - خدماتنا تشمل: الشحن البري، الشحن البحري، الشحن الجوي، التخليص الجمركي، التخزين، وإدارة سلاسل الإمداد.
 - نغطي الشحن والتنقل بكفاءة عالية بين كافة مدن المملكة العربية السعودية (مثل الرياض، جدة، الدمام) بالإضافة للشحن الدولي.`;
 
-        // دمج توجيهات النظام والرسالة لضمان التوافق مع بروتوكول v1
-        const combinedText = `${SYSTEM_INSTRUCTION}\n\nسؤال المستخدم الحالي للإجابة عليه مباشرة وبذكاء:\n${userMessage}`;
+        // صياغة النص المدمج بشكل أنيق لتلقينه لذكاء المحرك مباشرة
+        const combinedText = `${SYSTEM_INSTRUCTION}\n\nسؤال المستخدم الحالي للإجابة عليه بدقة وبناءً على التوجيهات السابقة:\n${userMessage || "مرحباً"}`;
 
+        // إرسال الطلب الخام بدون حقول مجهولة تعترض عليها v1
         const apiResponse = await fetch(API_URL, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -52,7 +54,7 @@ export default async function handler(req, res) {
 
         const data = await apiResponse.json();
 
-        // التقاط أي رسالة خطأ قادمة من جوجل وطباعتها للفهم
+        // فحص وجود أي أخطاء مطبوعة من جوجل لإظهارها فوراً
         if (data.error) {
             return res.status(200).json({ reply: `تنبيه من سيرفر جوجل: ${data.error.message}` });
         }
