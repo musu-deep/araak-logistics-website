@@ -6,7 +6,7 @@ const SYSTEM_INSTRUCTION = `أنت "مساعد أراك الذكي"، الوكي
 - نغطي الشحن والتنقل بكفاءة عالية بين كافة مدن المملكة العربية السعودية (مثل الرياض، جدة، الدمام) بالإضافة للشحن الدولي.`;
 
 export default async function handler(req, res) {
-    // إعدادات CORS الشاملة لمنع أي تعارض
+    // إعدادات CORS الشاملة
     res.setHeader('Access-Control-Allow-Credentials', 'true');
     res.setHeader('Access-Control-Allow-Origin', '*');
     res.setHeader('Access-Control-Allow-Methods', 'GET,OPTIONS,PATCH,DELETE,POST,PUT');
@@ -21,41 +21,45 @@ export default async function handler(req, res) {
     }
 
     try {
-        const { message } = req.body;
+        // تأمين قراءة الـ body سواء كان كائن جاهز أو نص بحاجة لمعالجة
+        let body = req.body;
+        if (typeof body === 'string') {
+            body = JSON.parse(body);
+        }
+
+        const userMessage = body?.message || "";
         const apiKey = process.env.GEMINI_API_KEY;
 
         if (!apiKey) {
-            return res.status(500).json({ reply: "عذراً، يوجد خطأ في تهيئة خادم الذكاء الاصطناعي (مفتاح الربط مفقود)." });
+            return res.status(200).json({ reply: "عذراً، لم يتم العثور على مفتاح السيرفر GEMINI_API_KEY في لوحة Vercel." });
         }
 
-        // استخدام نموذج مستقر يمتلك حقل مخصص للـ systemInstruction مدمج في الرابط
         const API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
 
+        // إرسال الطلب بالهيكلية الرسمية لـ Gemini 1.5
         const apiResponse = await fetch(API_URL, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
-                // الطريقة الرسمية المضمونة لتمرير الأوامر والرسالة بدون تداخل
                 systemInstruction: {
                     parts: [{ text: SYSTEM_INSTRUCTION }]
                 },
                 contents: [{
                     role: 'user',
-                    parts: [{ text: message || "مرحباً" }]
+                    parts: [{ text: userMessage || "مرحباً" }]
                 }],
                 generationConfig: { 
                     temperature: 0.7, 
-                    maxOutputTokens: 500 
+                    maxOutputTokens: 400 
                 }
             })
         });
 
         const data = await apiResponse.json();
 
-        // فحص ما إذا كانت جوجل قد أرجعت خطأ صريحاً وقراءته بدلاً من التجاهل
+        // إذا أرجعت جوجل خطأ واضحاً سنعرضه فوراً لنكشف السبب
         if (data.error) {
-            console.error("Google Gemini Error Details:", data.error);
-            return res.status(200).json({ reply: `خطأ من خادم المزود: ${data.error.message}` });
+            return res.status(200).json({ reply: `تنبيه من سيرفر جوجل: ${data.error.message}` });
         }
 
         const aiReply = data?.candidates?.[0]?.content?.parts?.[0]?.text;
@@ -63,11 +67,10 @@ export default async function handler(req, res) {
         if (aiReply) {
             return res.status(200).json({ reply: aiReply.trim() });
         } else {
-            return res.status(200).json({ reply: "استلمت رسالتك، ولكن لم يتمكن المحرك من صياغة رد مناسب حالياً. يرجى إعادة المحاولة." });
+            return res.status(200).json({ reply: "استلمت رسالتك، ولكن لم يتمكن الذكاء الاصطناعي من صياغة رد مناسب حالياً. يرجى محاولة كتابة سؤالك بصيغة أخرى." });
         }
 
     } catch (error) {
-        console.error("Server Handler Catch Error:", error);
-        return res.status(500).json({ reply: "أواجه مشكلة داخلية في السيرفر أثناء تحضير الإجابة." });
+        return res.status(200).json({ reply: `عذراً، حدث خطأ أثناء معالجة الطلب في السيرفر: ${error.message}` });
     }
 }
