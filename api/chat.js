@@ -21,7 +21,6 @@ export default async function handler(req, res) {
     }
 
     try {
-        // تأمين قراءة الـ body سواء كان كائن جاهز أو نص بحاجة لمعالجة
         let body = req.body;
         if (typeof body === 'string') {
             body = JSON.parse(body);
@@ -34,22 +33,22 @@ export default async function handler(req, res) {
             return res.status(200).json({ reply: "عذراً، لم يتم العثور على مفتاح السيرفر GEMINI_API_KEY في لوحة Vercel." });
         }
 
+        // الرابط المستقر المعتمد
         const API_URL = `https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
 
-        // إرسال الطلب بالهيكلية الرسمية لـ Gemini 1.5
+        // صياغة الحزمة بدمج التوجيه مع الرسالة لضمان قبول الـ Payload في إصدار v1
+        const combinedText = `${SYSTEM_INSTRUCTION}\n\nسؤال المستخدم الحالي للاستجابة الفورية بناءً على التوجيهات أعلاه:\n${userMessage}`;
+
         const apiResponse = await fetch(API_URL, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
-                systemInstruction: {
-                    parts: [{ text: SYSTEM_INSTRUCTION }]
-                },
                 contents: [{
                     role: 'user',
-                    parts: [{ text: userMessage || "مرحباً" }]
+                    parts: [{ text: combinedText }]
                 }],
                 generationConfig: { 
-                    temperature: 0.7, 
+                    temperature: 0.5, 
                     maxOutputTokens: 400 
                 }
             })
@@ -57,7 +56,6 @@ export default async function handler(req, res) {
 
         const data = await apiResponse.json();
 
-        // إذا أرجعت جوجل خطأ واضحاً سنعرضه فوراً لنكشف السبب
         if (data.error) {
             return res.status(200).json({ reply: `تنبيه من سيرفر جوجل: ${data.error.message}` });
         }
@@ -67,7 +65,7 @@ export default async function handler(req, res) {
         if (aiReply) {
             return res.status(200).json({ reply: aiReply.trim() });
         } else {
-            return res.status(200).json({ reply: "استلمت رسالتك، ولكن لم يتمكن الذكاء الاصطناعي من صياغة رد مناسب حالياً. يرجى محاولة كتابة سؤالك بصيغة أخرى." });
+            return res.status(200).json({ reply: "استلمت رسالتك، ولكن لم يتمكن المحرك من صياغة رد مناسب حالياً." });
         }
 
     } catch (error) {
