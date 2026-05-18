@@ -38,25 +38,51 @@ export default function AIAssistant() {
     }
   }, [messages, open, minimized]);
 
-  // دالة الاتصال بالسيرفر المصغر الآمن (Vercel Serverless Function)
-  const fetchAIResponse = async (userText: string): Promise<string> => {
+ const fetchAIResponse = async (userText: string): Promise<string> => {
     try {
-      const response = await fetch('/api/chat', {
+      const API_KEY = "AIzaSyBQrq66kfTOd7Ffc2eDOzzR5V26oc2Gajs"; 
+      
+      // تغيير المسار إلى الموديل المعتمد والمستقر لإنهاء الـ 404 تماماً
+      const API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${API_KEY}`;
+
+      const SYSTEM_INSTRUCTION = `أنت "مساعد أراك الذكي"، الوكيل الافتراضي الرسمي لشركة "أراك لوجستيك" (Araak Logistics). مهمتك هي الإجابة على استفسارات العملاء باحترافية، وود، وبصياغة ممتازة باللغة العربية وبإيجاز مناسب للمحادثات.
+معلومات الشركة الأساسية:
+- تقدم خدمات شحن متكاملة ومخصصة لشركات الـ B2B.
+- أراك لوجستيك هي الذراع الرقمي واللوجستي لمجموعة يو بي اتش الالكترونية (UPH Group).
+- خدماتنا تشمل: الشحن البري، الشحن البحري، الشحن الجوي، التخليص الجمركي، التخزين، وإدارة سلاسل الإمداد.
+- نغطي الشحن والتنقل بكفاءة عالية بين كافة مدن المملكة العربية السعودية (مثل الرياض، جدة، الدمام) بالإضافة للشحن الدولي.`;
+
+      const response = await fetch(API_URL, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ message: userText })
+        headers: { 
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          contents: [
+            {
+              parts: [
+                { text: `${SYSTEM_INSTRUCTION}\n\nسؤال المستخدم: ${userText}` }
+              ]
+            }
+          ]
+        })
       });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        return `تنبيّه من السيرفر (${response.status}): ${errorText}`;
+      }
 
       const data = await response.json();
       
-      if (response.ok && data.reply) {
-        return data.reply.trim();
+      if (data?.candidates?.[0]?.content?.parts?.[0]?.text) {
+        return data.candidates[0].content.parts[0].text.trim();
       } else {
-        throw new Error(data.error || "Failed to fetch response from backend");
+        return `استلمت حزمة غير متوقعة: ${JSON.stringify(data)}`;
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error("AI Request Error:", error);
-      return 'شكراً لسؤالك! أواجه صعوبة في معالجة الرد اللحظي الآن. يرجى محاولة طرح سؤالك مرة أخرى أو استخدام نموذج تواصل معنا بأسفل الصفحة.';
+      return `فشل الاتصال: ${error.message || 'خطأ غير معروف في الشبكة'}`;
     }
   };
 
@@ -67,7 +93,6 @@ export default function AIAssistant() {
     setInput('');
     setTyping(true);
 
-    // استدعاء الذكاء الاصطناعي الحي بدلاً من الردود الثابتة
     const aiReplyText = await fetchAIResponse(text);
     
     const botMsg: Message = { role: 'bot', text: aiReplyText, time: now() };
