@@ -1,5 +1,5 @@
 export default async function handler(req, res) {
-    // إعدادات CORS الشاملة
+    // إعدادات CORS الشاملة والأكيدة
     res.setHeader('Access-Control-Allow-Credentials', 'true');
     res.setHeader('Access-Control-Allow-Origin', '*');
     res.setHeader('Access-Control-Allow-Methods', 'GET,OPTIONS,PATCH,DELETE,POST,PUT');
@@ -26,8 +26,8 @@ export default async function handler(req, res) {
             return res.status(200).json({ reply: "عذراً، لم يتم العثور على مفتاح السيرفر GEMINI_API_KEY في لوحة Vercel." });
         }
 
-        // الانتقال إلى النموذج البروجكت المستقر والمفتوح لكافة الحسابات تلقائياً
-        const API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-pro:generateContent?key=${apiKey}`;
+        // استخدام المسار الكلاسيكي المضمون 100% لنموذج gemini-pro القياسي
+        const API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=${apiKey}`;
 
         const SYSTEM_INSTRUCTION = `أنت "مساعد أراك الذكي"، الوكيل الافتراضي الرسمي لشركة "أراك لوجستيك" (Araak Logistics). مهمتك هي الإجابة على استفسارات العملاء باحترافية، وود، وبصياغة ممتازة باللغة العربية وبإيجاز مناسب للمحادثات.
 معلومات الشركة الأساسية:
@@ -36,6 +36,7 @@ export default async function handler(req, res) {
 - خدماتنا تشمل: الشحن البري، الشحن البحري، الشحن الجوي، التخليص الجمركي، التخزين، وإدارة سلاسل الإمداد.
 - نغطي الشحن والتنقل بكفاءة عالية بين كافة مدن المملكة العربية السعودية (مثل الرياض، جدة، الدمام) بالإضافة للشحن الدولي.`;
 
+        // دمج التوجيهات بشكل مباشر بداخل النص ليتوافق مع النسخة المستقرة
         const combinedText = `${SYSTEM_INSTRUCTION}\n\nسؤال المستخدم الحالي للإجابة عليه فوراً:\n${userMessage}`;
 
         const apiResponse = await fetch(API_URL, {
