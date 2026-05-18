@@ -35,18 +35,22 @@ export default async function handler(req, res) {
             return res.status(200).json({ reply: "عذراً، لم يتم العثور على مفتاح السيرفر GEMINI_API_KEY في لوحة Vercel." });
         }
 
-        // إعداد الحزمة الرسمية
+        // تهيئة الحزمة الرسمية المثبتة حديثاً
         const ai = new GoogleGenAI({ apiKey: apiKey });
         
-        // استدعاء النموذج بالطريقة المعتمدة رسمياً للحزم
-        const model = ai.getGenerativeModel({ 
+        // استدعاء دالة توليد المحتوى المباشرة والمتوافقة مع بنية الحزمة المحدثة
+        const response = await ai.models.generateContent({
             model: 'gemini-1.5-flash',
-            systemInstruction: SYSTEM_INSTRUCTION
+            contents: userMessage || "مرحباً",
+            config: {
+                systemInstruction: SYSTEM_INSTRUCTION,
+                temperature: 0.7,
+                maxOutputTokens: 450
+            }
         });
 
-        const result = await model.generateContent(userMessage || "مرحباً");
-        const response = await result.response;
-        const aiReply = response.text();
+        // استخراج النص الراجع من النتيجة مباشرة
+        const aiReply = response?.text;
 
         if (aiReply) {
             return res.status(200).json({ reply: aiReply.trim() });
@@ -56,6 +60,7 @@ export default async function handler(req, res) {
 
     } catch (error) {
         console.error("Gemini SDK Error:", error);
-        return res.status(200).json({ reply: `تنبيه من السيرفر: ${error.message}` });
+        // إرجاع تفاصيل الخطأ مباشرة على الواجهة لنعلم إن كان هناك قيود على المفتاح أو الحزمة
+        return res.status(200).json({ reply: `تنبيه من السيرفر الداخلي: ${error.message}` });
     }
 }
