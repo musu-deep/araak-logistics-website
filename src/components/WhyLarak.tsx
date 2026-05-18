@@ -71,7 +71,7 @@ export default function WhyLarak() {
 
             {/* Badge */}
             <div className="absolute -top-4 -left-4 bg-gold-gradient rounded-2xl px-5 py-3 shadow-gold">
-              <p className="text-brand-900 font-cairo font-black text-sm">شريك UPH</p>
+              <p className="text-brand-900 font-cairo font-black text-sm">شريك التحول</p>
               <p className="text-brand-800/70 font-cairo text-xs">خبرة تشغيلية عميقة</p>
             </div>
           </div>
@@ -90,7 +90,7 @@ export default function WhyLarak() {
             </h2>
 
             <p className="text-neutral-600 font-cairo text-base leading-relaxed mb-10">
-              اراك لوجستيك تجمع بين إرث يو بي اتش التشغيلي الراسخ وأحدث الحلول الرقمية لتقديم تجربة لوجستية متكاملة لا مثيل لها في المنطقة.
+              اراك لوجستيك تجمع بين التجارب والإرث التشغيلي الراسخ وأحدث الحلول الرقمية لتقديم تجربة لوجستية متكاملة لا مثيل لها في المنطقة.
             </p>
 
             <div className="grid sm:grid-cols-2 gap-5">

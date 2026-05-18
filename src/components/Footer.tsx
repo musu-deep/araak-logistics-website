@@ -10,7 +10,7 @@ const footerLinks = {
     { label: 'شحن جوي مخصص', href: '#services' },
   ],
   company: [
-    { label: 'عن لاراك لوجستيك', href: '#about' },
+    { label: 'عن اراك لوجستيك', href: '#about' },
     { label: 'شركاؤنا', href: '#partners' },
     { label: 'تتبع الشحنة', href: '#track' },
     { label: 'احصل على عرض سعر', href: '#quote' },
@@ -121,7 +121,7 @@ export default function Footer() {
             © {new Date().getFullYear()} اراك لوجستيك – جميع الحقوق محفوظة
           </p>
           <div className="flex items-center gap-4">
-            <p className="text-white/20 font-cairo text-xs">مدعوم بإرث يو بي اتش (UPH)</p>
+            <p className="text-white/20 font-cairo text-xs">مدعوم من واعي اراك | ARAAK AI (2026)</p>
             <button
               onClick={scrollTop}
               className="w-9 h-9 bg-white/10 hover:bg-gold-gradient rounded-xl flex items-center justify-center transition-all duration-200 group"
