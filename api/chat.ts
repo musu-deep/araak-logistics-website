@@ -1,4 +1,4 @@
-import type { VercelRequest, VercelResponse } from '@vercel/node';
+
 
 const SYSTEM_INSTRUCTION = `
 أنت "مساعد أراك الذكي"، الوكيل الافتراضي الرسمي لشركة "أراك لوجستيك" (Araak Logistics). 
@@ -6,7 +6,7 @@ const SYSTEM_INSTRUCTION = `
 معلومات الشركة الأساسية: أراك لوجستيك هي الذراع الرقمي واللوجستي لمجموعة يو بي اتش UPH. تقدم خدمات شحن متكاملة: للشركات B2B، للأفراد والتجارة الإلكترونية B2C، وللقطاع الحكومي B2G، بالإضافة لخدمات ضيوف الرحمن (شحن وأمتعة الحجاج والمعتمرين مستلهمة من نجاح UPH). المقر الرئيسي في جدة (شارع التحلية)، البريد: info@araak.org. التتبع يتم عبر الصفحة الرئيسية برقم التتبع.
 `;
 
-export default async function handler(req: VercelRequest, res: VercelResponse) {
+export default async function handler(req: any, res: any) {
   // السماح لطلب الـ CORS من موقعك فقط
   res.setHeader('Access-Control-Allow-Credentials', 'true');
   res.setHeader('Access-Control-Allow-Origin', '*');
