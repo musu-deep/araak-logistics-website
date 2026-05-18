@@ -38,11 +38,15 @@ export default function AIAssistant() {
     }
   }, [messages, open, minimized]);
 
- const fetchAIResponse = async (userText: string): Promise<string> => {
+const fetchAIResponse = async (userText: string): Promise<string> => {
     try {
-      const API_KEY = "AIzaSyBQrq66kfTOd7Ffc2eDOzzR5V26oc2Gajs"; 
+      // قراءة المفتاح من المتغيرات البيئية بأمان كامل لمنع تسريبه مجدداً
+      const API_KEY = import.meta.env.VITE_GEMINI_API_KEY; 
       
-      // تغيير المسار إلى الموديل المعتمد والمستقر لإنهاء الـ 404 تماماً
+      if (!API_KEY) {
+        return "خطأ: لم يتم العثور على مفتاح الـ API في البيئة التشغيلية.";
+      }
+      
       const API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${API_KEY}`;
 
       const SYSTEM_INSTRUCTION = `أنت "مساعد أراك الذكي"، الوكيل الافتراضي الرسمي لشركة "أراك لوجستيك" (Araak Logistics). مهمتك هي الإجابة على استفسارات العملاء باحترافية، وود، وبصياغة ممتازة باللغة العربية وبإيجاز مناسب للمحادثات.
