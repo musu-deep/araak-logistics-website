@@ -1,3 +1,5 @@
+import { GoogleGenAI } from '@google/generative-ai';
+
 const SYSTEM_INSTRUCTION = `أنت "مساعد أراك الذكي"، الوكيل الافتراضي الرسمي لشركة "أراك لوجستيك" (Araak Logistics). مهمتك هي الإجابة على استفسارات العملاء باحترافية، وود، وبصياغة ممتازة باللغة العربية وبإيجاز مناسب للمحادثات.
 معلومات الشركة الأساسية:
 - تقدم خدمات شحن متكاملة ومخصصة لشركات الـ B2B.
@@ -6,7 +8,7 @@ const SYSTEM_INSTRUCTION = `أنت "مساعد أراك الذكي"، الوكي
 - نغطي الشحن والتنقل بكفاءة عالية بين كافة مدن المملكة العربية السعودية (مثل الرياض، جدة، الدمام) بالإضافة للشحن الدولي.`;
 
 export default async function handler(req, res) {
-    // إعدادات CORS الشاملة
+    // إعدادات CORS الشاملة لمنع تعارض المتصفحات
     res.setHeader('Access-Control-Allow-Credentials', 'true');
     res.setHeader('Access-Control-Allow-Origin', '*');
     res.setHeader('Access-Control-Allow-Methods', 'GET,OPTIONS,PATCH,DELETE,POST,PUT');
@@ -33,35 +35,19 @@ export default async function handler(req, res) {
             return res.status(200).json({ reply: "عذراً، لم يتم العثور على مفتاح السيرفر GEMINI_API_KEY في لوحة Vercel." });
         }
 
-        // الرابط المستقر المعتمد
-        const API_URL = `https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
-
-        // صياغة الحزمة بدمج التوجيه مع الرسالة لضمان قبول الـ Payload في إصدار v1
-        const combinedText = `${SYSTEM_INSTRUCTION}\n\nسؤال المستخدم الحالي للاستجابة الفورية بناءً على التوجيهات أعلاه:\n${userMessage}`;
-
-        const apiResponse = await fetch(API_URL, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                contents: [{
-                    role: 'user',
-                    parts: [{ text: combinedText }]
-                }],
-                generationConfig: { 
-                    temperature: 0.5, 
-                    maxOutputTokens: 400 
-                }
-            })
+        // إعداد الحزمة الرسمية
+        const ai = new GoogleGenAI({ apiKey: apiKey });
+        
+        // استدعاء النموذج بالطريقة المعتمدة رسمياً للحزم
+        const model = ai.getGenerativeModel({ 
+            model: 'gemini-1.5-flash',
+            systemInstruction: SYSTEM_INSTRUCTION
         });
 
-        const data = await apiResponse.json();
+        const result = await model.generateContent(userMessage || "مرحباً");
+        const response = await result.response;
+        const aiReply = response.text();
 
-        if (data.error) {
-            return res.status(200).json({ reply: `تنبيه من سيرفر جوجل: ${data.error.message}` });
-        }
-
-        const aiReply = data?.candidates?.[0]?.content?.parts?.[0]?.text;
-        
         if (aiReply) {
             return res.status(200).json({ reply: aiReply.trim() });
         } else {
@@ -69,6 +55,7 @@ export default async function handler(req, res) {
         }
 
     } catch (error) {
-        return res.status(200).json({ reply: `عذراً، حدث خطأ أثناء معالجة الطلب في السيرفر: ${error.message}` });
+        console.error("Gemini SDK Error:", error);
+        return res.status(200).json({ reply: `تنبيه من السيرفر: ${error.message}` });
     }
 }
