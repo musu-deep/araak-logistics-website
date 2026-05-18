@@ -1,14 +1,5 @@
-import { GoogleGenAI } from '@google/generative-ai';
-
-const SYSTEM_INSTRUCTION = `أنت "مساعد أراك الذكي"، الوكيل الافتراضي الرسمي لشركة "أراك لوجستيك" (Araak Logistics). مهمتك هي الإجابة على استفسارات العملاء باحترافية، وود، وبصياغة ممتازة باللغة العربية وبإيجاز مناسب للمحادثات.
-معلومات الشركة الأساسية:
-- تقدم خدمات شحن متكاملة ومخصصة لشركات الـ B2B.
-- أراك لوجستيك هي الذراع الرقمي واللوجستي لمجموعة يو بي اتش الالكترونية (UPH Group).
-- خدماتنا تشمل: الشحن البري، الشحن البحري، الشحن الجوي، التخليص الجمركي، التخزين، وإدارة سلاسل الإمداد.
-- نغطي الشحن والتنقل بكفاءة عالية بين كافة مدن المملكة العربية السعودية (مثل الرياض، جدة، الدمام) بالإضافة للشحن الدولي.`;
-
 export default async function handler(req, res) {
-    // إعدادات CORS الشاملة لمنع تعارض المتصفحات
+    // إعدادات CORS الشاملة والأكيدة لعدم حجب الرد في المتصفح
     res.setHeader('Access-Control-Allow-Credentials', 'true');
     res.setHeader('Access-Control-Allow-Origin', '*');
     res.setHeader('Access-Control-Allow-Methods', 'GET,OPTIONS,PATCH,DELETE,POST,PUT');
@@ -35,21 +26,38 @@ export default async function handler(req, res) {
             return res.status(200).json({ reply: "عذراً، لم يتم العثور على مفتاح السيرفر GEMINI_API_KEY في لوحة Vercel." });
         }
 
-        // تهيئة الكائن الأساسي من المكتبة الرسمية المحدثة
-        const ai = new GoogleGenAI({ apiKey: apiKey });
+        // الرابط المباشر لنسخة جوجل المستقرة مع تمرير المفتاح
+        const API_URL = `https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
 
-        // صياغة الطلب بالأسلوب المباشر المعتمد للإصدار الأحدث من الـ SDK
-        const response = await ai.models.generateContent({
-            model: 'gemini-1.5-flash',
-            contents: `${SYSTEM_INSTRUCTION}\n\nسؤال العميل الحالي للإجابة عليه مباشرة:\n${userMessage || "مرحباً"}`,
-            config: {
-                temperature: 0.6,
-                maxOutputTokens: 400
-            }
+        const SYSTEM_INSTRUCTION = `أنت "مساعد أراك الذكي"، الوكيل الافتراضي الرسمي لشركة "أراك لوجستيك" (Araak Logistics). مهمتك هي الإجابة على استفسارات العملاء باحترافية، وود، وبصياغة ممتازة باللغة العربية وبإيجاز مناسب للمحادثات.
+معلومات الشركة الأساسية:
+- تقدم خدمات شحن متكاملة ومخصصة لشركات الـ B2B.
+- أراك لوجستيك هي الذراع الرقمي واللوجستي لمجموعة يو بي اتش الالكترونية (UPH Group).
+- خدماتنا تشمل: الشحن البري، الشحن البحري، الشحن الجوي، التخليص الجمركي، التخزين، وإدارة سلاسل الإمداد.
+- نغطي الشحن والتنقل بكفاءة عالية بين كافة مدن المملكة العربية السعودية (مثل الرياض، جدة، الدمام) بالإضافة للشحن الدولي.`;
+
+        // دمج توجيهات النظام والرسالة لضمان التوافق مع بروتوكول v1
+        const combinedText = `${SYSTEM_INSTRUCTION}\n\nسؤال المستخدم الحالي للإجابة عليه مباشرة وبذكاء:\n${userMessage}`;
+
+        const apiResponse = await fetch(API_URL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                contents: [{
+                    role: 'user',
+                    parts: [{ text: combinedText }]
+                }]
+            })
         });
 
-        // التقاط النص بأمان تفتيت الكائن
-        const aiReply = response?.text;
+        const data = await apiResponse.json();
+
+        // التقاط أي رسالة خطأ قادمة من جوجل وطباعتها للفهم
+        if (data.error) {
+            return res.status(200).json({ reply: `تنبيه من سيرفر جوجل: ${data.error.message}` });
+        }
+
+        const aiReply = data?.candidates?.[0]?.content?.parts?.[0]?.text;
 
         if (aiReply) {
             return res.status(200).json({ reply: aiReply.trim() });
@@ -58,8 +66,6 @@ export default async function handler(req, res) {
         }
 
     } catch (error) {
-        console.error("Gemini SDK Execution Error:", error);
-        // في حال حدوث أي استثناء، سنطبعه هنا لنرى طبيعته فوراً بدلاً من الرسالة العامة
-        return res.status(200).json({ reply: `تنبيه من السيرفر الداخلي: ${error.message}` });
+        return res.status(200).json({ reply: `عذراً، حدث خطأ داخلي في السيرفر: ${error.message}` });
     }
 }
