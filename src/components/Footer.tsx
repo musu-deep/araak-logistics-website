@@ -1,29 +1,35 @@
 import { ArrowUp } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
+// استيراد الشعار الحقيقي المباشر من نفس المجلد
+import logo from './araak-logo.png'; 
 
+// تحويل عناصر القوائم إلى مفاتيح مطابقة لملفات الـ JSON لضمان ديناميكية الترجمة
 const footerLinks = {
   services: [
-    { label: 'شحن الشركات (B2B)', href: '#services' },
-    { label: 'التجارة الإلكترونية (B2C)', href: '#services' },
-    { label: 'الجهات الحكومية (B2G)', href: '#services' },
-    { label: 'خدمات ضيوف الرحمن', href: '#services' },
-    { label: 'تخليص جمركي', href: '#services' },
-    { label: 'شحن جوي مخصص', href: '#services' },
+    { key: 'b2b', href: '#services' },
+    { key: 'b2c', href: '#services' },
+    { key: 'b2g', href: '#services' },
+    { key: 'hajj', href: '#services' },
+    { key: 'customs', href: '#services' },
+    { key: 'air_cargo', href: '#services' },
   ],
   company: [
-    { label: 'عن اراك لوجستيك', href: '#about' },
-    { label: 'شركاؤنا', href: '#partners' },
-    { label: 'تتبع الشحنة', href: '#track' },
-    { label: 'احصل على عرض سعر', href: '#quote' },
-    { label: 'تواصل معنا', href: '#contact' },
+    { key: 'about_us', href: '#about' },
+    { key: 'partners', href: '#partners' },
+    { key: 'track', href: '#track' },
+    { key: 'quote', href: '#quote' },
+    { key: 'contact', href: '#contact' },
   ],
   legal: [
-    { label: 'سياسة الخصوصية', href: '#' },
-    { label: 'شروط الاستخدام', href: '#' },
-    { label: 'سياسة الإرجاع', href: '#' },
+    { key: 'privacy', href: '#' },
+    { key: 'terms', href: '#' },
+    { key: 'return', href: '#' },
   ],
 };
 
 export default function Footer() {
+  const { t } = useTranslation();
+
   const scrollTop = () => window.scrollTo({ top: 0, behavior: 'smooth' });
 
   const scrollTo = (href: string) => {
@@ -37,36 +43,40 @@ export default function Footer() {
       {/* Main Footer */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
         <div className="grid lg:grid-cols-4 gap-10">
-          {/* Brand */}
+          
+          {/* Brand & Logo Section */}
           <div className="lg:col-span-1">
-            <div className="flex items-center gap-3 mb-5">
-              <div className="w-10 h-10 rounded-xl bg-gold-gradient flex items-center justify-center shadow-gold">
-                <span className="text-brand-900 font-cairo font-black text-lg">ل</span>
-              </div>
-              <div>
-                <div className="text-white font-cairo font-bold text-lg">اراك لوجستيك</div>
-                <div className="text-gold-400 font-inter text-xs tracking-widest">Araak Logistics</div>
+            <div className="flex flex-col gap-4 mb-5">
+              <div className="flex items-center justify-start">
+                <img 
+                  src={logo} 
+                  alt={t('footer.about_title')} 
+                  className="h-16 w-auto object-contain brightness-110"
+                />
               </div>
             </div>
+            
             <p className="text-white/50 font-cairo text-sm leading-relaxed mb-6">
-              شريك الإمداد الذكي من الباب إلى العالم. نقود تحول سلاسل الإمداد في الشرق الأوسط.
+              {t('footer.about_desc')}
             </p>
             <div className="space-y-2">
-              <p className="text-white/40 font-cairo text-xs">المقر: جدة، شارع التحلية</p>
-              <a href="mailto:info@araak.org" className="text-gold-400 font-inter text-sm hover:text-gold-300 transition-colors" dir="ltr">info@araak.org</a>
+              <p className="text-white/40 font-cairo text-xs">{t('footer.location')}</p>
+              <a href="mailto:info@araaklogistics.com" className="text-gold-400 font-inter text-sm hover:text-gold-300 transition-colors block" dir="ltr">info@araak.org</a>
               <p className="text-white/40 font-inter text-xs" dir="ltr">www.araaklogistics.com</p>
             </div>
           </div>
 
           {/* Services */}
           <div>
-            <h4 className="text-white font-cairo font-bold text-base mb-5 pb-3 border-b border-white/10">خدماتنا</h4>
+            <h4 className="text-white font-cairo font-bold text-base mb-5 pb-3 border-b border-white/10">
+              {t('footer.services_title')}
+            </h4>
             <ul className="space-y-2.5">
               {footerLinks.services.map((l) => (
-                <li key={l.label}>
+                <li key={l.key}>
                   <a href={l.href} onClick={(e) => { e.preventDefault(); scrollTo(l.href); }}
                     className="text-white/50 hover:text-white font-cairo text-sm transition-colors">
-                    {l.label}
+                    {t(`footer.links.${l.key}`)}
                   </a>
                 </li>
               ))}
@@ -75,13 +85,15 @@ export default function Footer() {
 
           {/* Company */}
           <div>
-            <h4 className="text-white font-cairo font-bold text-base mb-5 pb-3 border-b border-white/10">الشركة</h4>
+            <h4 className="text-white font-cairo font-bold text-base mb-5 pb-3 border-b border-white/10">
+              {t('footer.company_title')}
+            </h4>
             <ul className="space-y-2.5">
               {footerLinks.company.map((l) => (
-                <li key={l.label}>
+                <li key={l.key}>
                   <a href={l.href} onClick={(e) => { e.preventDefault(); scrollTo(l.href); }}
                     className="text-white/50 hover:text-white font-cairo text-sm transition-colors">
-                    {l.label}
+                    {t(`footer.links.${l.key}`)}
                   </a>
                 </li>
               ))}
@@ -90,23 +102,27 @@ export default function Footer() {
 
           {/* Newsletter + Legal */}
           <div>
-            <h4 className="text-white font-cairo font-bold text-base mb-5 pb-3 border-b border-white/10">ابق على اطلاع</h4>
-            <p className="text-white/50 font-cairo text-sm mb-4">اشترك للحصول على آخر أخبارنا وعروضنا</p>
+            <h4 className="text-white font-cairo font-bold text-base mb-5 pb-3 border-b border-white/10">
+              {t('footer.newsletter_title')}
+            </h4>
+            <p className="text-white/50 font-cairo text-sm mb-4">{t('footer.newsletter_desc')}</p>
             <div className="flex gap-2 mb-6">
               <input
                 type="email"
-                placeholder="بريدك الإلكتروني"
+                placeholder={t('footer.email_placeholder')}
                 className="flex-1 px-4 py-2.5 bg-white/10 border border-white/10 rounded-xl font-cairo text-sm text-white placeholder-white/30 focus:outline-none focus:border-gold-400/50 transition-all"
                 dir="ltr"
               />
               <button className="px-4 py-2.5 bg-gold-gradient text-brand-900 font-cairo font-bold text-sm rounded-xl hover:shadow-gold transition-all">
-                اشتراك
+                {t('footer.subscribe_btn')}
               </button>
             </div>
             <ul className="space-y-2">
               {footerLinks.legal.map((l) => (
-                <li key={l.label}>
-                  <a href={l.href} className="text-white/30 hover:text-white/60 font-cairo text-xs transition-colors">{l.label}</a>
+                <li key={l.key}>
+                  <a href={l.href} className="text-white/30 hover:text-white/60 font-cairo text-xs transition-colors">
+                    {t(`footer.links.${l.key}`)}
+                  </a>
                 </li>
               ))}
             </ul>
@@ -118,14 +134,14 @@ export default function Footer() {
       <div className="border-t border-white/10">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-5 flex items-center justify-between flex-wrap gap-4">
           <p className="text-white/30 font-cairo text-sm">
-            © {new Date().getFullYear()} اراك لوجستيك – جميع الحقوق محفوظة
+            © {new Date().getFullYear()} {t('footer.links.about_us')} – {t('footer.rights')}
           </p>
           <div className="flex items-center gap-4">
-            <p className="text-white/20 font-cairo text-xs">مدعوم من واعي اراك | ARAAK AI (2026)</p>
+            <p className="text-white/20 font-cairo text-xs">{t('footer.powered_by')}</p>
             <button
               onClick={scrollTop}
               className="w-9 h-9 bg-white/10 hover:bg-gold-gradient rounded-xl flex items-center justify-center transition-all duration-200 group"
-              aria-label="العودة للأعلى"
+              aria-label="Back to top"
             >
               <ArrowUp size={16} className="text-white/60 group-hover:text-brand-900 transition-colors" />
             </button>
