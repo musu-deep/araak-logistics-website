@@ -1,7 +1,13 @@
 import { useTranslation } from 'react-i18next';
 import { ArrowLeft, ArrowRight, Play, TrendingUp, Shield, Clock } from 'lucide-react';
 
-export default function Hero() {
+// 1. تحديث الـ Interface ليشمل دالة التمرير ودالة فتح بوابة الآدمن المخفية
+interface HeroProps {
+  onQuoteClick: () => void;
+  onAdminTrigger: () => void;
+}
+
+export default function Hero({ onQuoteClick, onAdminTrigger }: HeroProps) {
   const { t, i18n } = useTranslation();
   const isArabic = i18n.language?.startsWith('ar');
 
@@ -15,6 +21,13 @@ export default function Hero() {
   const scrollTo = (href: string) => {
     const el = document.querySelector(href);
     if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  };
+
+  // دالة التقاط النقر الثلاثي السري والآمن
+  const handleBadgeClick = (e: React.MouseEvent) => {
+    if (e.detail === 3) {
+      onAdminTrigger(); // تشغيل بوابة الإدارة فوراً عند الضغط 3 مرات متتالية
+    }
   };
 
   return (
@@ -58,8 +71,11 @@ export default function Hero() {
           {/* محتوى النصوص والاتصال بالأزرار */}
           <div className="order-2 lg:order-1">
             
-            {/* الشارة العليا */}
-            <div className="inline-flex items-center gap-2 px-4 py-2 bg-gold-400/15 border border-gold-400/30 rounded-full mb-6 animate-fade-in">
+            {/* 🎯 الشارة العليا: تم ربطها بحدث handleBadgeClick لرصد الـ Triple Click السري */}
+            <div 
+              onClick={handleBadgeClick}
+              className="inline-flex items-center gap-2 px-4 py-2 bg-gold-400/15 border border-gold-400/30 rounded-full mb-6 animate-fade-in cursor-default select-none active:scale-98 transition-transform"
+            >
               <span className="w-2 h-2 rounded-full bg-gold-400 animate-pulse" />
               <span className="text-gold-300 font-cairo text-sm font-semibold">
                 {t('hero.badge', 'رؤية 2030 – الشريك اللوجستي الأمثل')}
@@ -80,12 +96,12 @@ export default function Hero() {
 
             {/* أزرار اتخاذ الإجراء (CTAs) */}
             <div className="flex flex-wrap gap-4 mb-12 animate-fade-up" style={{ animationDelay: '0.2s' }}>
+              {/* ربط الزر الأصفر بالدالة البرمجية الممررة للاستدعاء الفوري بدلاً من الـ ID اللوكال */}
               <button
-                onClick={() => scrollTo('#quote')}
+                onClick={onQuoteClick}
                 className="flex items-center gap-2 px-7 py-3.5 bg-gold-gradient text-brand-900 font-cairo font-bold text-base rounded-xl shadow-gold hover:shadow-lg hover:-translate-y-0.5 transition-all duration-200"
               >
                 {t('hero.cta_quote', 'احصل على عرض سعر')}
-                {/* قلب اتجاه السهم برمجياً بناءً على اللغة لمنع التداخل */}
                 {isArabic ? <ArrowLeft size={18} /> : <ArrowRight size={18} />}
               </button>
               
@@ -124,7 +140,7 @@ export default function Hero() {
                 <div className="absolute inset-0 bg-gradient-to-t from-brand-900/60 to-transparent" />
               </div>
 
-              {/* الكرت العائم 1: شحنة آمنة (يتأثر اتجاه الهوامش تلقائياً بالـ RTL/LTR) */}
+              {/* الكرت العائم 1: شحنة آمنة */}
               <div className="absolute -bottom-6 -right-6 bg-white rounded-2xl p-4 shadow-card-hover animate-float">
                 <div className="flex items-center gap-3">
                   <div className="w-10 h-10 bg-green-500/10 rounded-xl flex items-center justify-center">

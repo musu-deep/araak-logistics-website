@@ -29,6 +29,17 @@ export default function Header() {
     i18n.changeLanguage(nextLang);
   };
 
+  // دالة الانتقال السلس إلى حقل طلب التسعير
+  const handleScrollToQuote = (e: React.MouseEvent) => {
+    e.preventDefault();
+    const element = document.getElementById('quote-section');
+    if (element) {
+      element.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+    // إغلاق قائمة الجوال إذا كانت مفتوحة أثناء الضغط
+    setIsMobileMenuOpen(false);
+  };
+
   const navLinks = [
     { href: '#home', label: t('nav.home', 'الرئيسية') },
     { href: '#services', label: t('nav.services', 'خدماتنا') },
@@ -41,13 +52,13 @@ export default function Header() {
   return (
     <header
       dir={isArabic ? 'rtl' : 'ltr'}
-      className={`fixed top-0 left-0 right-0 z-50 transition-all duration-500 ${
+      className={`fixed z-50 transition-all duration-500 left-0 right-0 ${
         isScrolled
-          ? 'bg-[#030712]/95 backdrop-blur-md shadow-xl py-3 border-b border-white/5'
-          : 'bg-transparent py-5'
+          ? 'top-4 max-w-7xl mx-auto rounded-2xl bg-[#030712]/80 backdrop-blur-md shadow-2xl py-3 border border-white/5 px-4 sm:px-6 lg:px-8'
+          : 'top-0 bg-transparent py-5 px-4 sm:px-6 lg:px-8'
       }`}
     >
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div className="max-w-7xl mx-auto">
         <div className="flex items-center justify-between h-16">
           
           {/* قسم الشعار بالصورة الأصلية للهوية */}
@@ -74,7 +85,7 @@ export default function Header() {
             ))}
           </nav>
 
-          {/* أزرار التحكم: اللغة + طلب السعر */}
+          {/* أزرار التحكم: اللغة + زر التمرير لطلب السعر للشاشات الكبيرة */}
           <div className="hidden md:flex items-center gap-4">
             <button
               onClick={toggleLanguage}
@@ -84,12 +95,12 @@ export default function Header() {
               <span>{isArabic ? 'EN' : 'AR'}</span>
             </button>
 
-            <a
-              href="#quote"
-              className="px-5 py-2.5 bg-gold-gradient text-brand-950 font-cairo font-black text-sm rounded-xl shadow-gold hover:shadow-lg hover:-translate-y-0.5 transition-all duration-200"
+            <button
+              onClick={handleScrollToQuote}
+              className="px-5 py-2.5 bg-gold-gradient text-brand-950 font-cairo font-black text-sm rounded-xl shadow-gold hover:shadow-lg hover:-translate-y-0.5 transition-all duration-200 cursor-pointer"
             >
               {t('nav.get_quote', 'طلب سعر')}
-            </a>
+            </button>
           </div>
 
           {/* زر القائمة للشاشات الصغيرة (الجوال) */}
@@ -114,7 +125,7 @@ export default function Header() {
 
       {/* القائمة المنسدلة للجوال باللون الكحلي الملكي المطابق */}
       {isMobileMenuOpen && (
-        <div className="md:hidden bg-[#030712]/98 backdrop-blur-lg border-b border-white/10 animate-fade-down">
+        <div className="md:hidden bg-[#030712]/98 backdrop-blur-lg border-b border-white/10 animate-fade-down rounded-b-xl mt-2">
           <div className="px-4 pt-2 pb-6 space-y-2">
             {navLinks.map((link) => (
               <a
@@ -126,14 +137,14 @@ export default function Header() {
                 {link.label}
               </a>
             ))}
+            {/* زر التمرير لطلب السعر داخل قائمة الجوال */}
             <div className="pt-4 px-4">
-              <a
-                href="#quote"
-                onClick={() => setIsMobileMenuOpen(false)}
-                className="block w-full text-center py-3 bg-gold-gradient text-brand-950 font-cairo font-black rounded-xl shadow-gold"
+              <button
+                onClick={handleScrollToQuote}
+                className="block w-full text-center py-3 bg-gold-gradient text-brand-950 font-cairo font-black rounded-xl shadow-gold cursor-pointer"
               >
                 {t('nav.get_quote', 'طلب سعر')}
-              </a>
+              </button>
             </div>
           </div>
         </div>

@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../supabaseClient';
-import emailjs from '@emailjs/browser'; // ✉️ استيراد مكتبة تنبيهات البريد الإلكتروني الفورية
-import araakLogo from './araak-logo.png';
+import emailjs from '@emailjs/browser'; 
+import araakLogo from './araak-logo01.png'; 
 
 emailjs.init('7B3V3FLjjra0Stcqt');
+
 interface Message {
   id: string;
   text: string;
@@ -29,7 +30,7 @@ export default function AIAssistant() {
   const [messages, setMessages] = useState<Message[]>([
     {
       id: '1',
-      text: 'أهلاً بك، أنا "مساعد أراك الذكي"، الوكيل الافتراضي لشركة أراك لوجستيك. كيف يمكنني مساعدتك اليوم في خدمات الشحن والتسعير؟',
+      text: 'أهلاً بك، أنا "مساعد أراك الذكي"، الوكيل الافتراضي لشركة أراك لوجستيك. كيف يمكنني مساعدتك اليوم في خدمات الشحن أو طلب تسعير؟',
       sender: 'ai',
       timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
     }
@@ -38,6 +39,8 @@ export default function AIAssistant() {
   const [isLoading, setIsLoading] = useState(false);
   const [showForm, setShowForm] = useState(false);
   const [showErrorAction, setShowErrorAction] = useState(false);
+  const [isTrackingMode, setIsTrackingMode] = useState(false); 
+  
   const [formData, setFormData] = useState({
     companyName: '',
     email: '',
@@ -48,20 +51,26 @@ export default function AIAssistant() {
     weight: ''
   });
 
-  // وضع الإدارة المتقدم والتحكم
   const [isAdminMode, setIsAdminMode] = useState(false);
   const [secretClicks, setSecretClicks] = useState(0);
   const [requests, setRequests] = useState<QuotationRequest[]>([]);
   const [adminLoading, setAdminLoading] = useState(false);
   
-  // حالات الفرز والبحث الموسع
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [typeFilter, setTypeFilter] = useState('all');
   const [expandedRowId, setExpandedRowId] = useState<string | null>(null);
 
-  // 📞 رقم الواتساب الرسمي لشركة اراك لوجستيك لاستقبال محادثات العملاء مباشرة
-  const ARAAK_OFFICIAL_PHONE = "00966551596477"; // قم بتعديل هذا الرقم لرقم مبيعاتكم الرسمي ومفتاح الدولة
+  const ARAAK_OFFICIAL_PHONE = "966551596477";
+
+  // دالة صارمة لتطهير أرقام الهواتف من الأصفار الزائدة والرموز لمنع الكاش والتلاعب بالروابط
+  const sanitizePhoneNumber = (phone: string) => {
+    let cleaned = phone.replace(/[^0-9]/g, ''); 
+    if (cleaned.startsWith('00')) {
+      cleaned = cleaned.substring(2);
+    }
+    return cleaned;
+  };
 
   const fetchRequests = async () => {
     setAdminLoading(true);
@@ -127,7 +136,7 @@ export default function AIAssistant() {
       if (password === "Araak2026") {
         setIsAdminMode(true);
       } else if (password !== null) {
-        alert("❌ عذراً، كلمة المرور غير صحيحة. تم رفض صلاحية الوصول!");
+        alert("❌ عذراً، كلمة المرور غير صحيحة!");
       }
     } else {
       setSecretClicks(clicks);
@@ -171,7 +180,7 @@ export default function AIAssistant() {
       if (!API_KEY) return "ERROR_KEY";
 
       const API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${API_KEY}`;
-      const SYSTEM_INSTRUCTION = `أنت "مساعد أراك الذكي"، الوكيل الافتراضي لشركة "أراك لوجستيك" لخدمات الشحن الـ B2B. أجب باختصار واحترافية وبطابع لوجستي ترحيبي مميز.`;
+      const SYSTEM_INSTRUCTION = `أنت "مساعد أراك الذكي"، الوكيل الافتراضي لشركة "أراك لوجستيك" لخدمات الشحن وحلول سلاسل الإمداد . أجب باختصار واحترافية وبطابع لوجستي ترحيبي مميز ويعتمد على السرعة والدقة الفائقة.`;
 
       const response = await fetch(API_URL, {
         method: 'POST',
@@ -186,6 +195,40 @@ export default function AIAssistant() {
       return data?.candidates?.[0]?.content?.parts?.[0]?.text?.trim() || "ERROR_SERVER";
     } catch {
       return "ERROR_SERVER";
+    }
+  };
+
+  // دالة الاستعلام الحي والمباشر عن الشحنات من Supabase
+  const handleTrackShipment = async (waybill: string) => {
+    setIsLoading(true);
+    try {
+      const { data, error } = await supabase
+        .from('shipments')
+        .select('*')
+        .eq('waybill_number', waybill.trim())
+        .single();
+
+      if (error || !data) {
+        setMessages(prev => [...prev, {
+          id: Date.now().toString(),
+          text: `❌ عذراً، لم نتمكن من العثور على شحنة مسجلة برقم البوليصة (${waybill}).\nيرجى التأكد من صحة الرقم والمحاولة مرة أخرى، أو التواصل مع العمليات مباشرة لمساعدتك.`,
+          sender: 'ai',
+          timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+        }]);
+      } else {
+        const deliveryDate = data.estimated_delivery ? new Date(data.estimated_delivery).toLocaleDateString('ar-SA') : 'قيد التحديث';
+        setMessages(prev => [...prev, {
+          id: Date.now().toString(),
+          text: `📍 تفاصيل الشحنة الحية للبوليصة [${data.waybill_number}]:\n\n🏢 المنشأة: شركة ${data.company_name}\n📦 الوضع الحالي: ${data.status}\n🌍 خط السير: من ${data.origin_city} إلى ${data.destination_city}\n📍 الموقع الحالي للشاحنة: ${data.current_location || 'قيد المعالجة'}\n📅 الموعد المتوقع للوصول: ${deliveryDate}\n\nشرفنا بخدمتكم في شركة أراك لوجستيك!`,
+          sender: 'ai',
+          timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+        }]);
+      }
+    } catch {
+      alert('خطأ في الاتصال بقاعدة البيانات أثناء التتبع');
+    } finally {
+      setIsLoading(false);
+      setIsTrackingMode(false);
     }
   };
 
@@ -204,19 +247,66 @@ export default function AIAssistant() {
     setIsLoading(true);
     setShowErrorAction(false);
 
-    if (textToSend.includes('تسعير') || textToSend.includes('احسب') || textToSend.includes('حجز') || textToSend.includes('طلب')) {
-      setShowForm(true);
-      setIsLoading(false);
+    const cleanText = textToSend.trim();
+
+    if (isTrackingMode) {
+      await handleTrackShipment(cleanText);
       return;
     }
 
-    const aiReply = await fetchAIResponse(textToSend);
+    if (cleanText === 'طلب تسعير شحنة' || cleanText.includes('تسعير') || cleanText.includes('احسب') || cleanText.includes('حجز') || cleanText.includes('تكلفة')) {
+      setShowForm(true);
+      setIsLoading(false);
+      return; 
+    }
+
+    if (cleanText === 'ما هي خدمات الشحن المتاحة لديكم؟') {
+      setTimeout(() => {
+        setMessages(prev => [...prev, {
+          id: Date.now().toString(),
+          text: '📦 خدمات الشحن المتاحة في أراك لوجستيك:\n\n1️⃣ الشحن البري 🚚: أسطول شاحنات حديث يغطي كافة مدن المملكة ودول الخليج العربي.\n2️⃣ الشحن البحري 🚢: حلول شحن الحاويات الكاملة (FCL) والجزئية (LCL) عبر الموانئ الرئيسية.\n3️⃣ الشحن الجوي ✈️: خدمات نقل سريعة وآمنة للبضائع والمواد الملحة والحساسة.\n\nيمكنك الآن إرسال (طلب تسعير) لتسجيل تفاصيل شحنتك والحصول على تسعيرة دقيقة!',
+          sender: 'ai',
+          timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+        }]);
+        setIsLoading(false);
+      }, 500); 
+      return;
+    }
+
+    if (cleanText === 'هل تقدمون خدمات التخليص الجمركي؟') {
+      setTimeout(() => {
+        setMessages(prev => [...prev, {
+          id: Date.now().toString(),
+          text: '🛃 نعم، بكل تأكيد! يقدم خبراؤنا اللوجستيون خدمات التخليص الجمركي المتكاملة، وإنهاء المستندات في المنافذ والموانئ البرية، البحرية، والجوية الرئيسية بالمملكة العربية السعودية لضمان انسيابية بضائعكم دون تأخير.',
+          sender: 'ai',
+          timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+        }]);
+        setIsLoading(false);
+      }, 500);
+      return;
+    }
+
+    if (cleanText === 'أريد تتبع شحنتي الحالية.') {
+      setTimeout(() => {
+        setMessages(prev => [...prev, {
+          id: Date.now().toString(),
+          text: '📍 نظام التتبع الذكي لشركة أراك لوجستيك.\nفضلاً قم بكتابة وإرسال "رقم بوليصة الشحن (Waybill)" الخاص بك الآن ليستعلم النظام عنها فوراً.',
+          sender: 'ai',
+          timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+        }]);
+        setIsTrackingMode(true);
+        setIsLoading(false);
+      }, 500);
+      return;
+    }
+
+    const aiReply = await fetchAIResponse(cleanText);
     
     if (aiReply === "ERROR_SERVER" || aiReply === "ERROR_KEY") {
       setShowErrorAction(true);
       setMessages(prev => [...prev, {
         id: (Date.now() + 1).toString(),
-        text: '⚠️ المساعد الذكي يمر بتحديث سريع ومؤقت الآن، لكن معاملاتك اللوجستية لا تنتظر! يمكنك الضغط مباشرة على الزر بالأسفل لتعبئة بيانات التسعير وسيتولى فريق العمل مراجعتها فوراً.',
+        text: '⚠️ المساعد الذكي يمر بتحديث سريع ومؤقت الآن، يمكنك الضغط مباشرة على الزر بالأسفل لتعبئة بيانات التسعير وسيتولى فريق العمل مراجعتها فوراً.',
         sender: 'ai',
         timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
       }]);
@@ -236,7 +326,6 @@ export default function AIAssistant() {
     setIsLoading(true);
 
     try {
-      // 1. الحفظ السحابي في جدول قاعدة بيانات Supabase
       const { error } = await supabase.from('quotation_requests').insert([
         {
           company_name: formData.companyName,
@@ -252,7 +341,6 @@ export default function AIAssistant() {
 
       if (error) throw error;
 
-      // 2. ✉️ إرسال التنبيه الفوري التلقائي عبر البريد الإلكتروني باستخدام EmailJS
       const emailTemplateParams = {
         company_name: formData.companyName,
         contact_email: formData.email,
@@ -263,24 +351,9 @@ export default function AIAssistant() {
         estimated_weight: formData.weight || 'غير محدد'
       };
 
-      // استدعاء خدمة الإرسال السريع لرسالة الإدارة ثم رسالة العميل بالتسلسل
-      await emailjs.send(
-        'service_r36zjpc',   // Service ID من حسابك في EmailJS
-        'template_7jggxa9',  // قالب الرسالة الإدارية المعتمد
-        emailTemplateParams,
-        '7B3V3FLjjra0Stcqt'  // Public Key العام لحسابك
-      );
-      console.log('📧 تم إرسال إشعار البريد الإلكتروني للإدارة بنجاح!');
+      await emailjs.send('service_r36zjpc', 'template_7jggxa9', emailTemplateParams, '7B3V3FLjjra0Stcqt');
+      await emailjs.send('service_r36zjpc', 'template_0rm3bgi', emailTemplateParams, '7B3V3FLjjra0Stcqt');
 
-      await emailjs.send(
-        'service_r36zjpc',   // نفس الـ Service ID
-        'template_0rm3bgi',  // قالب العميل الجديد الذي اعتمدناه
-        emailTemplateParams,
-        '7B3V3FLjjra0Stcqt'  // نفس الـ Public Key
-      );
-      console.log('📱 تم إرسال إشعار البريد الإلكتروني التلقائي للعميل بنجاح!');
-
-      // 🔄 تحديث واجهة المستخدم بعد نجاح الإرسال بالكامل
       setShowForm(false);
       setShowErrorAction(false);
       
@@ -290,7 +363,7 @@ export default function AIAssistant() {
 
       setMessages(prev => [...prev, {
         id: Date.now().toString(),
-        text: `👍 تم استلام طلب التسعيرة الخاص بشركة (${formData.companyName}) بنجاح! تم تسجيل شحن ${formData.shippingType} من ${formData.origin} إلى ${formData.destination}. سيقوم فريق العمل بمراجعة الطلب والتواصل معكم هاتفياً أو عبر الواتساب قريباً جداً.`,
+        text: `👍 تم استلام طلب التسعيرة الخاص بشركة (${formData.companyName}) بنجاح! تم تسجيل شحن ${formData.shippingType} من ${formData.origin} إلى ${formData.destination}. سيقوم فريق العمل بمراجعة الطلب والتواصل معكم قريباً.`,
         sender: 'ai',
         timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
       }]);
@@ -318,12 +391,12 @@ export default function AIAssistant() {
 
   return (
     <>
-      {/* 📦 أزرار الوصول السريع العائمة أسفل الشاشة للعميل */}
+      {/* 📦 أزرار الوصول السريع العائمة */}
       {!isOpen && !isAdminMode && (
         <div className="fixed bottom-6 left-6 flex flex-col gap-3 z-50 items-center">
-          {/* 💬 زر التواصل المباشر والسريع عبر واتساب مبيعات الشركة للعملاء */}
+          {/* 💬 زر الواتساب المطهر برمجياً وبشكل صارم */}
           <a 
-            href={`https://wa.me/${ARAAK_OFFICIAL_PHONE.replace(/[^0-9]/g, '')}?text=${encodeURIComponent('مرحباً شركة أراك لوجستيك، أود الاستفسار مباشرة عن خدمات الشحن وتوفير عرض أسعار لوجستي.')}`}
+            href={`https://wa.me/${sanitizePhoneNumber(ARAAK_OFFICIAL_PHONE)}?text=${encodeURIComponent('مرحباً شركة أراك لوجستيك، أود الاستفسار مباشرة عن خدمات الشحن وتوفير عرض أسعار لوجستي.')}`}
             target="_blank"
             rel="noopener noreferrer"
             className="bg-emerald-500 text-white w-12 h-12 rounded-full shadow-lg flex items-center justify-center transition-all duration-300 hover:scale-110 border border-emerald-400 text-xl"
@@ -332,10 +405,9 @@ export default function AIAssistant() {
             💬
           </a>
 
-          {/* زر المساعد الذكي الرئيسي */}
           <button 
             onClick={() => setIsOpen(true)}
-            className="bg-gradient-to-tr from-blue-700 to-blue-500 text-white w-16 h-16 rounded-full shadow-2xl flex items-center justify-center transition-all duration-300 hover:scale-110 border-2 border-white/20"
+            className="bg-[#009695] hover:bg-[#F3CA40] text-white hover:text-[#4A4A4A] w-16 h-16 rounded-full shadow-2xl flex items-center justify-center transition-all duration-300 hover:scale-110 border-2 border-white/20"
           >
             <svg xmlns="http://www.w3.org/2000/svg" className="h-7 w-7" viewBox="0 0 20 20" fill="currentColor">
               <path fillRule="evenodd" d="M18 10c0 3.866-3.582 7-8 7a8.841 8.841 0 01-4.083-.98L2 17l1.338-3.123C2.493 12.767 2 11.434 2 10c0-3.866 3.582-7 8-7s8 3.134 8 7zM7 9H5v2h2V9zm8 0h-2v2h2V9zm-6 0h2v2H9V9z" clipRule="evenodd" />
@@ -344,7 +416,7 @@ export default function AIAssistant() {
         </div>
       )}
 
-      {/* 🌐 نافذة النظام المتقدمة */}
+      {/* 🌐 نافذة النظام الرئيسية */}
       {(isOpen || isAdminMode) && (
         <div 
           className={`fixed border border-gray-100 bg-white rounded-2xl shadow-2xl overflow-hidden font-sans transition-all duration-300 text-right z-50 backdrop-blur-md antialiased flex flex-col
@@ -353,20 +425,25 @@ export default function AIAssistant() {
               : 'bottom-6 left-6 h-[550px] w-[380px]'
             }`}
         >
-          {/* رأس النافذة */}
+          {/* الرأس */}
           <div 
-            className={`text-white p-4 flex justify-between items-center select-none cursor-pointer bg-gradient-to-r shrink-0 ${isAdminMode ? 'from-indigo-800 to-indigo-600' : 'from-blue-700 to-blue-500'}`} 
+            className="text-white p-4 flex justify-between items-center select-none cursor-pointer bg-[#4A4A4A] border-b border-white/5 shrink-0" 
             onClick={handleHeaderClick}
           >
             <div className="flex items-center gap-3">
-              <div className="bg-white/10 p-2 rounded-full border border-white/20 backdrop-blur-sm">
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-blue-100" viewBox="0 0 20 20" fill="currentColor">
-                  <path d="M10 2a1 1 0 011 1v1a1 1 0 11-2 0V3a1 1 0 011-1zm4 8a4 4 0 11-8 0 4 4 0 018 0zm-.464-4.95l.707.707a1 1 0 01-1.414 1.414l-.707-.707a1 1 0 011.414-1.414zm-8.778 0a1 1 0 011.414 0l.707.707a1 1 0 11-1.414 1.414l-.707-.707a1 1 0 010-1.414zM16 11a1 1 0 100-2h-1a1 1 0 100 2h1zm-11 0a1 1 0 100-2H4a1 1 0 100 2h1z" />
-                </svg>
+              <div className="w-10 h-10 rounded-full bg-white p-1 flex items-center justify-center shadow-md overflow-hidden border border-white/20">
+                <img 
+                  src={araakLogo} 
+                  alt="أراك لوجستيك" 
+                  className="w-full h-full object-contain scale-110" 
+                />
               </div>
               <div>
-                <h3 className="font-bold text-sm tracking-wide font-sans">{isAdminMode ? '🌐 مركز الإدارة والتحكم اللوجستي المتكامل' : 'مساعد أراك الذكي'}</h3>
-                <p className="text-[11px] text-blue-100/80 font-normal font-sans">{isAdminMode ? 'قاعدة بيانات سحابية ونظام فرز متقدم لـ Supabase' : 'متاح الآن بذكاء عالي الاستجابة'}</p>
+                <h3 className="font-bold text-sm font-cairo tracking-wide">{isAdminMode ? '🌐 مركز الإدارة والتحكم اللوجستي المتكامل' : 'مساعد أراك الذكي'}</h3>
+                <div className="flex items-center gap-1.5">
+                  <span className="w-2 h-2 rounded-full bg-green-400 animate-pulse"></span>
+                  <p className="text-[11px] text-gray-300 font-normal font-cairo">{isAdminMode ? 'قاعدة بيانات سحابية ونظام فرز متقدم لـ Supabase' : 'متصل الآن ومستعد لخدمتك'}</p>
+                </div>
               </div>
             </div>
             
@@ -391,10 +468,9 @@ export default function AIAssistant() {
             </div>
           </div>
 
-          {/* ================= لوحة التحكم المتقدمة (Admin Mode) ================= */}
+          {/* ================= لوحة التحكم الإدارية (Admin Mode) ================= */}
           {isAdminMode ? (
             <div className="flex-1 flex flex-col bg-gray-50 overflow-hidden h-full" dir="rtl">
-              {/* شريط الإحصائيات والتصدير */}
               <div className="flex flex-col md:flex-row md:items-center justify-between p-4 gap-3 border-b bg-white shrink-0">
                 <div className="flex gap-4 flex-1">
                   <div className="bg-blue-50/60 px-4 py-2 rounded-xl border border-blue-100">
@@ -405,175 +481,128 @@ export default function AIAssistant() {
                     <span className="block text-[11px] text-gray-500 font-bold font-sans">قيد الدراسة</span>
                     <span className="text-lg font-bold text-amber-700 font-mono">{pendingRequests}</span>
                   </div>
-                  <div className="bg-green-50/60 px-4 py-2 rounded-xl border border-green-100">
-                    <span className="block text-[11px] text-gray-500 font-bold font-sans">تم معالجتها</span>
-                    <span className="text-lg font-bold text-green-700 font-mono">{totalRequests - pendingRequests}</span>
-                  </div>
                 </div>
                 <button 
                   onClick={exportToCSV}
-                  className="bg-emerald-600 hover:bg-emerald-700 text-white text-xs px-4 py-2 rounded-xl font-bold transition-all shadow-sm flex items-center justify-center gap-1.5 self-start md:self-auto"
+                  className="bg-emerald-600 hover:bg-emerald-700 text-white text-xs px-4 py-2 rounded-xl font-bold transition-all shadow-sm flex items-center justify-center gap-1.5"
                 >
                   📥 تصدير البيانات إلى Excel
                 </button>
               </div>
 
-              {/* شريط أدوات الفرز والبحث */}
               <div className="p-3 bg-white border-b grid grid-cols-1 sm:grid-cols-3 gap-2.5 shrink-0">
-                <div>
-                  <input 
-                    type="text" 
-                    placeholder="🔍 ابحث بالاسم، الإيميل، أو الجوال..." 
-                    className="w-full p-2 border border-gray-200 rounded-lg text-xs outline-none focus:border-indigo-500 font-sans font-medium"
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                  />
-                </div>
-                <div>
-                  <select 
-                    className="w-full p-2 border border-gray-200 rounded-lg text-xs bg-white focus:border-indigo-500 outline-none font-sans font-medium"
-                    value={statusFilter}
-                    onChange={(e) => setStatusFilter(e.target.value)}
-                  >
-                    <option value="all">📁 جميع الحالات</option>
-                    <option value="pending">⏳ الطلبات المعلقة فقط</option>
-                    <option value="responded">✅ طلبات تم الرد عليها</option>
-                  </select>
-                </div>
-                <div>
-                  <select 
-                    className="w-full p-2 border border-gray-200 rounded-lg text-xs bg-white focus:border-indigo-500 outline-none font-sans font-medium"
-                    value={typeFilter}
-                    onChange={(e) => setTypeFilter(e.target.value)}
-                  >
-                    <option value="all">🌐 كل وسائل الشحن</option>
-                    <option value="بري">🚚 الشحن البري</option>
-                    <option value="بحري">🚢 الشحن البحري</option>
-                    <option value="جوي">✈️ الشحن الجوي</option>
-                  </select>
-                </div>
+                <input 
+                  type="text" 
+                  placeholder="🔍 ابحث بالاسم، الإيميل، أو الجوال..." 
+                  className="w-full p-2 border border-gray-200 rounded-lg text-xs outline-none focus:border-[#009695] font-sans"
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                />
+                <select 
+                  className="w-full p-2 border border-gray-200 rounded-lg text-xs bg-white focus:border-[#009695] outline-none font-sans"
+                  value={statusFilter}
+                  onChange={(e) => setStatusFilter(e.target.value)}
+                >
+                  <option value="all">📁 جميع الحالات</option>
+                  <option value="pending">⏳ الطلبات المعلقة فقط</option>
+                  <option value="responded">✅ طلبات تم الرد عليها</option>
+                </select>
+                <select 
+                  className="w-full p-2 border border-gray-200 rounded-lg text-xs bg-white focus:border-[#009695] outline-none font-sans"
+                  value={typeFilter}
+                  onChange={(e) => setTypeFilter(e.target.value)}
+                >
+                  <option value="all">🌐 كل وسائل الشحن</option>
+                  <option value="بري">🚚 الشحن البري</option>
+                  <option value="بحري">🚢 الشحن البحري</option>
+                  <option value="جوي">✈️ الشحن الجوي</option>
+                </select>
               </div>
 
-              {/* الجدول اللوجستي الإداري */}
               <div className="flex-1 p-4 overflow-auto">
                 {adminLoading ? (
-                  <div className="text-center py-12 text-xs text-gray-400 animate-pulse font-sans">جاري سحب الحجوزات من Supabase...</div>
+                  <div className="text-center py-12 text-xs text-gray-400 animate-pulse font-sans">جاري التحديث من سحابة Supabase...</div>
                 ) : filteredRequests.length === 0 ? (
-                  <div className="text-center py-12 text-xs text-gray-400 font-sans">لا توجد طلبات مطابقة لمعايير البحث والفرز.</div>
+                  <div className="text-center py-12 text-xs text-gray-400 font-sans">لا توجد طلبات مطابقة.</div>
                 ) : (
                   <div className="bg-white rounded-xl border border-gray-100 overflow-hidden shadow-sm">
                     <table className="w-full text-right border-collapse text-xs">
                       <thead>
-                        <tr className="bg-gray-50/80 border-b text-gray-500 font-bold font-sans select-none">
+                        <tr className="bg-gray-50/80 border-b text-gray-500 font-bold p-3">
                           <th className="p-3 w-8"></th>
                           <th className="p-3">الشركة وجهة الاتصال</th>
                           <th className="p-3">نوع الشحن</th>
                           <th className="p-3">المسار اللوجستي</th>
                           <th className="p-3">الحالة</th>
-                          <th className="p-3 text-center">خيارات التحكم السريع</th>
+                          <th className="p-3 text-center">أدوات التحكم</th>
                         </tr>
                       </thead>
-                      <tbody className="divide-y divide-gray-100 text-gray-700 font-sans">
-                        {filteredRequests.map((req) => {
-                          const isExpanded = expandedRowId === req.id;
-                          const cleanPhone = req.contact_phone ? req.contact_phone.replace(/[^0-9+]/g, '') : '';
-
-                          return (
-                            <React.Fragment key={req.id}>
-                              <tr 
-                                onClick={() => toggleRowExpansion(req.id)}
-                                className={`cursor-pointer transition-colors ${isExpanded ? 'bg-indigo-50/30' : 'hover:bg-gray-50/60'}`}
-                              >
-                                <td className="p-3 text-center text-gray-400 font-bold">
-                                  {isExpanded ? '▼' : '◀'}
-                                </td>
-                                <td className="p-3">
-                                  <span className="block font-bold text-gray-900">{req.company_name}</span>
-                                  <span className="text-[10px] text-gray-400 font-mono select-all">{req.contact_email}</span>
-                                </td>
-                                <td className="p-3">
-                                  <span className={`px-2.5 py-0.5 rounded-md text-[10px] font-bold ${req.shipping_type === 'جوي' ? 'bg-purple-50 text-purple-700 border border-purple-200' : req.shipping_type === 'بحري' ? 'bg-cyan-50 text-cyan-700 border border-cyan-200' : 'bg-orange-50 text-orange-700 border border-orange-200'}`}>
-                                    {req.shipping_type}
-                                  </span>
-                                </td>
-                                <td className="p-3 font-semibold text-gray-600">{req.origin_city} ➔ {req.destination_city}</td>
-                                <td className="p-3">
-                                  <span className={`px-2 py-0.5 rounded-full text-[10px] font-semibold ${req.status === 'pending' ? 'bg-amber-100 text-amber-800' : 'bg-green-100 text-green-800'}`}>
-                                    {req.status === 'pending' ? '⏳ معلق' : '✅ تم الرد'}
-                                  </span>
-                                </td>
-                                <td className="p-3 text-center flex justify-center items-center gap-1.5" onClick={(e) => e.stopPropagation()}>
-                                  {req.status === 'pending' ? (
-                                    <button onClick={() => handleUpdateStatus(req.id, 'responded')} className="bg-indigo-600 hover:bg-indigo-700 text-white text-[10px] px-2.5 py-1 rounded-md font-bold shadow-sm transition-all">
-                                      تحديد كـ تم الرد
-                                    </button>
-                                  ) : (
-                                    <button onClick={() => handleUpdateStatus(req.id, 'pending')} className="bg-gray-100 hover:bg-gray-200 text-gray-500 text-[10px] px-2.5 py-1 rounded-md font-semibold transition-all">
-                                      إعادة كمعلق
-                                    </button>
-                                  )}
-                                  
-                                  {/* 💬 تظهر الأيقونة الخضراء للواتساب فقط إذا كان للعميل رقم هاتف مسجل بقاعدة البيانات */}
-                                  {cleanPhone ? (
-                                    <a 
-                                      href={`https://wa.me/${cleanPhone.replace(/[^0-9]/g, '')}?text=${encodeURIComponent(`مرحباً فريق عمل شركة (${req.company_name}) الموقرين، معكم شركة أراك لوجستيك. نسعد بالتواصل معكم بخصوص طلب تسعير شحنتكم الـ ${req.shipping_type} المقدمة عبر مساعدنا الذكي من ${req.origin_city} إلى ${req.destination_city}. تم تجهيز العرض الأولي ونود مناقشة تفاصيل الأسعار معكم.`)}`}
-                                      target="_blank"
-                                      rel="noopener noreferrer"
-                                      className="bg-emerald-50 hover:bg-emerald-100 text-emerald-600 border border-emerald-200 p-1 rounded-md transition-all flex items-center justify-center w-6 h-6 text-xs font-bold"
-                                      title="فتح محادثة مبيعات فورية مع العميل عبر الواتساب"
-                                    >
-                                      💬
-                                    </a>
-                                  ) : (
-                                    <span className="opacity-30 p-1 w-6 h-6 flex items-center justify-center text-xs" title="لم يتم تسجيل رقم جوال لهذا الطلب">🚫</span>
-                                  )}
-
-                                  <a 
-                                    href={`mailto:${req.contact_email}?subject=شركة أراك لوجستيك - عرض سعر طلب الشحن السريع&body=مرحباً فريق عمل ${req.company_name}،%0D%0A%0D%0Aنشكركم لتواصلكم مع شركة أراك لوجستيك عبر مساعدنا الذكي. بخصوص طلبكم لشحن (${req.shipping_type}) من ${req.origin_city} إلى ${req.destination_city}...`}
-                                    className="bg-blue-50 hover:bg-blue-100 text-blue-600 border border-blue-200 p-1 rounded-md transition-all flex items-center justify-center w-6 h-6"
-                                    title="إرسال بريد رسمي فوري"
+                      <tbody>
+                        {filteredRequests.map((req) => (
+                          <React.Fragment key={req.id}>
+                            <tr 
+                              onClick={() => toggleRowExpansion(req.id)}
+                              className="border-b last:border-0 hover:bg-gray-50/70 transition-all cursor-pointer text-gray-700"
+                            >
+                              <td className="p-3 text-center text-gray-400">
+                                {expandedRowId === req.id ? '🔼' : '🔽'}
+                              </td>
+                              <td className="p-3">
+                                <div className="font-bold text-gray-900">{req.company_name}</div>
+                                <div className="text-[10px] text-gray-400 font-mono">{req.contact_email} {req.contact_phone ? `| ${req.contact_phone}` : ''}</div>
+                              </td>
+                              <td className="p-3">
+                                <span className="px-2 py-1 rounded-md font-bold text-[10px] bg-blue-50 text-blue-700">
+                                  {req.shipping_type}
+                                </span>
+                              </td>
+                              <td className="p-3">
+                                <span className="font-semibold">{req.origin_city} ➔ {req.destination_city}</span>
+                              </td>
+                              <td className="p-3">
+                                <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                                  req.status === 'pending' ? 'bg-amber-100 text-amber-800' : 'bg-green-100 text-green-800'
+                                }`}>
+                                  {req.status === 'pending' ? '⏳ قيد الانتظار' : '✅ تم الرد'}
+                                </span>
+                              </td>
+                              <td className="p-3 text-center" onClick={(e) => e.stopPropagation()}>
+                                <div className="flex gap-1.5 justify-center">
+                                  <select 
+                                    value={req.status} 
+                                    onChange={(e) => handleUpdateStatus(req.id, e.target.value)}
+                                    className="p-1 text-[11px] border border-gray-200 bg-white rounded-lg outline-none font-sans"
                                   >
-                                    ✉️
-                                  </a>
-
+                                    <option value="pending">معلق</option>
+                                    <option value="responded">تم الرد</option>
+                                  </select>
                                   <button 
-                                    onClick={() => handleDeleteRequest(req.id, req.company_name)} 
-                                    className="bg-red-50 hover:bg-red-100 text-red-600 border border-red-200 p-1 rounded-md transition-all flex items-center justify-center w-6 h-6"
-                                    title="حذف الطلب نهائياً"
+                                    onClick={() => handleDeleteRequest(req.id, req.company_name)}
+                                    className="bg-red-50 text-red-600 px-2 py-1 rounded-lg text-[11px] font-bold border border-red-100"
                                   >
-                                    🗑️
+                                    حذف
                                   </button>
+                                </div>
+                              </td>
+                            </tr>
+                            {expandedRowId === req.id && (
+                              <tr className="bg-gray-50/50 border-b">
+                                <td colSpan={6} className="p-4 text-gray-500 font-sans text-xs">
+                                  <div className="grid grid-cols-2 gap-4">
+                                    <div>
+                                      📌 <strong>اسم الشركة:</strong> {req.company_name}
+                                      <br />📧 <strong>الإيميل:</strong> {req.contact_email}
+                                    </div>
+                                    <div>
+                                      📅 <strong>تاريخ الطلب:</strong> {new Date(req.created_at).toLocaleString('ar-SA')}
+                                      <br />⚖️ <strong>الوزن:</strong> {req.estimated_weight ? `${req.estimated_weight} طن` : 'غير محدد'}
+                                    </div>
+                                  </div>
                                 </td>
                               </tr>
-
-                              {/* السطر الموسع لعرض بطاقة تفاصيل الشحنة ورقم الجوال بشكل كامل */}
-                              {isExpanded && (
-                                <tr className="bg-indigo-50/20">
-                                  <td colSpan={6} className="p-4 border-t border-b border-indigo-100/50">
-                                    <div className="grid grid-cols-1 sm:grid-cols-4 gap-4 text-right bg-white p-3.5 rounded-xl border border-gray-100 shadow-inner">
-                                      <div>
-                                        <span className="block text-[10px] text-gray-400 font-bold mb-0.5">📱 رقم هاتف العميل</span>
-                                        <p className="text-xs font-bold text-emerald-600 font-mono bg-emerald-50/30 px-2 py-0.5 rounded inline-block select-all">{req.contact_phone || 'غير مسجل'}</p>
-                                      </div>
-                                      <div>
-                                        <span className="block text-[10px] text-gray-400 font-bold mb-0.5">⚖️ الوزن التقديري الإجمالي</span>
-                                        <p className="text-xs font-bold text-gray-800 font-mono">{req.estimated_weight ? `${req.estimated_weight} طن` : 'غير محدد'}</p>
-                                      </div>
-                                      <div>
-                                        <span className="block text-[10px] text-gray-400 font-bold mb-0.5">📅 تاريخ تقديم الطلب</span>
-                                        <p className="text-xs font-semibold text-gray-800 font-mono">{new Date(req.created_at).toLocaleString('ar-SA')}</p>
-                                      </div>
-                                      <div>
-                                        <span className="block text-[10px] text-gray-400 font-bold mb-0.5">📦 مسار الحركة اللوجستية</span>
-                                        <p className="text-xs font-semibold text-gray-800">من {req.origin_city} إلى {req.destination_city} ({req.shipping_type})</p>
-                                      </div>
-                                    </div>
-                                  </td>
-                                </tr>
-                              )}
-                            </React.Fragment>
-                          );
-                        })}
+                            )}
+                          </React.Fragment>
+                        ))}
                       </tbody>
                     </table>
                   </div>
@@ -581,105 +610,155 @@ export default function AIAssistant() {
               </div>
             </div>
           ) : (
-            // ================= شات العميل العصري المتكامل (User Mode) =================
-            <div className="h-[486px] flex flex-col justify-between bg-slate-50/50 flex-1">
-              <div className="flex-1 p-4 overflow-y-auto space-y-4">
-                {messages.map(msg => (
-                  <div key={msg.id} className={`flex ${msg.sender === 'user' ? 'justify-end' : 'justify-start'}`}>
-                    <div className={`max-w-[82%] p-3 rounded-2xl text-xs leading-relaxed shadow-sm font-semibold font-sans ${msg.sender === 'user' ? 'bg-gradient-to-l from-blue-700 to-blue-600 text-white rounded-br-none' : 'bg-white text-gray-800 border border-gray-100 rounded-bl-none'}`}>
-                      <p className="text-right whitespace-pre-line">{msg.text}</p>
-                      <span className={`block text-[9px] mt-1.5 text-left font-normal ${msg.sender === 'user' ? 'text-blue-200' : 'text-gray-400'}`}>{msg.timestamp}</span>
-                    </div>
+            /* ================= وضع واجهة دردشة العميل (User Chat Mode) ================= */
+            <div className="flex-1 flex flex-col bg-gray-50 overflow-hidden h-full">
+              <div className="flex-1 p-4 overflow-y-auto space-y-3.5 flex flex-col">
+                {messages.map((msg) => (
+                  <div 
+                    key={msg.id} 
+                    className={`flex flex-col max-w-[82%] rounded-2xl p-3 shadow-sm text-xs leading-relaxed whitespace-pre-line ${
+                      msg.sender === 'user' 
+                        ? 'bg-[#009695] text-white rounded-br-none self-start text-left' 
+                        : 'bg-white text-gray-800 border border-gray-100 rounded-bl-none self-end text-right'
+                    }`}
+                  >
+                    <p>{msg.text}</p>
+                    <span className={`text-[9px] mt-1.5 block font-mono ${msg.sender === 'user' ? 'text-white/70' : 'text-gray-400'}`}>
+                      {msg.timestamp}
+                    </span>
                   </div>
                 ))}
+                
+                {isLoading && (
+                  <div className="bg-white border border-gray-100 text-gray-400 p-3 rounded-2xl max-w-[60%] text-xs self-end shadow-sm animate-pulse">
+                    جاري الاستعلام والمعالجة...
+                  </div>
+                )}
 
-                {/* بطاقة الإنقاذ التلقائية */}
-                {showErrorAction && !showForm && (
-                  <div className="flex justify-center p-2 animate-bounce">
+                {messages.length === 1 && !showForm && (
+                  <div className="pt-2 flex flex-col gap-2 w-full" dir="rtl">
                     <button 
-                      onClick={() => setShowForm(true)}
-                      className="bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold px-5 py-2.5 rounded-xl shadow-md transition-all font-sans"
+                      onClick={() => handleSendMessage('طلب تسعير شحنة')}
+                      className="w-full text-right bg-white hover:bg-[#009695]/5 text-[#009695] border border-[#009695]/20 p-2.5 rounded-xl text-xs font-bold transition-all shadow-sm"
                     >
-                      📋 تعبئة نموذج طلب السعر يدوياً الآن
+                      💰 طلب تسعير شحنة
+                    </button>
+                    <button 
+                      onClick={() => handleSendMessage('ما هي خدمات الشحن المتاحة لديكم؟')}
+                      className="w-full text-right bg-white hover:bg-gray-100 text-gray-700 border border-gray-200 p-2.5 rounded-xl text-xs transition-all shadow-sm"
+                    >
+                      🚚 ما هي خدمات الشحن المتاحة لديكم؟
+                    </button>
+                    <button 
+                      onClick={() => handleSendMessage('أريد تتبع شحنتي الحالية.')}
+                      className="w-full text-right bg-white hover:bg-[#009695]/5 text-[#009695] border border-gray-200 p-2.5 rounded-xl text-xs font-bold transition-all shadow-sm"
+                    >
+                      📍 أريد تتبع وضع شحنتي الحالية.
                     </button>
                   </div>
                 )}
 
-                {/* نموذج طلب التسعير المطور والشامل */}
+                {/* نموذج التسعير */}
                 {showForm && (
-                  <form onSubmit={handleFormSubmit} className="bg-white p-4 rounded-xl border-2 border-blue-500 space-y-3 text-right shadow-lg font-sans" dir="rtl">
-                    <h4 className="font-bold text-xs text-blue-600 mb-2 border-b pb-1.5">📋 نموذج طلب تسعيرة شحن سريع</h4>
-                    
+                  <form onSubmit={handleFormSubmit} className="bg-white border border-gray-200 rounded-2xl p-4 space-y-3 shadow-md w-full text-right" dir="rtl">
+                    <div className="flex justify-between items-center border-b pb-2 mb-1">
+                      <h4 className="font-bold text-xs text-gray-800">📋 نموذج طلب تسعير لوجستي</h4>
+                      <button type="button" onClick={() => setShowForm(false)} className="text-gray-400 hover:text-red-500 text-xs">إلغاء</button>
+                    </div>
+
+                    <div>
+                      <label className="block text-[11px] text-gray-500 font-bold mb-1">اسم المنشأة / الشركة *</label>
+                      <input 
+                        type="text" required placeholder="مثال: شركة أراك للتجارة"
+                        className="w-full p-2 text-xs border border-gray-200 rounded-lg outline-none focus:border-[#009695]"
+                        value={formData.companyName}
+                        onChange={(e) => setFormData({...formData, companyName: e.target.value})}
+                      />
+                    </div>
+
                     <div className="grid grid-cols-2 gap-2">
                       <div>
-                        <label className="block text-[10px] font-bold text-gray-500 mb-1">اسم الشركة / المؤسسة</label>
-                        <input required type="text" className="w-full p-2 border border-gray-200 rounded-lg text-xs text-right focus:border-blue-500 outline-none transition-all font-sans font-medium" value={formData.companyName} onChange={e => setFormData({...formData, companyName: e.target.value})} />
+                        <label className="block text-[11px] text-gray-500 font-bold mb-1">البريد الإلكتروني *</label>
+                        <input 
+                          type="email" required placeholder="name@company.com"
+                          className="w-full p-2 text-xs border border-gray-200 rounded-lg outline-none text-left"
+                          value={formData.email}
+                          onChange={(e) => setFormData({...formData, email: e.target.value})}
+                        />
                       </div>
-                      
                       <div>
-                        <label className="block text-[10px] font-bold text-gray-500 mb-1">رقم الهاتف / الواتساب</label>
-                        <input required type="tel" placeholder="مثال: +966500000000" className="w-full p-2 border border-gray-200 rounded-lg text-xs text-left focus:border-blue-500 outline-none transition-all font-mono" value={formData.phone} onChange={e => setFormData({...formData, phone: e.target.value})} />
+                        <label className="block text-[11px] text-gray-500 font-bold mb-1">رقم الجوال *</label>
+                        <input 
+                          type="tel" required placeholder="055XXXXXXX"
+                          className="w-full p-2 text-xs border border-gray-200 rounded-lg outline-none text-left"
+                          value={formData.phone}
+                          onChange={(e) => setFormData({...formData, phone: e.target.value})}
+                        />
                       </div>
                     </div>
 
                     <div>
-                      <label className="block text-[10px] font-bold text-gray-500 mb-1">البريد الإلكتروني الرسمي</label>
-                      <input required type="email" className="w-full p-2 border border-gray-200 rounded-lg text-xs text-left focus:border-blue-500 outline-none transition-all font-sans font-medium" value={formData.email} onChange={e => setFormData({...formData, email: e.target.value})} />
+                      <label className="block text-[11px] text-gray-500 font-bold mb-1">نوع الشحن *</label>
+                      <select 
+                        className="w-full p-2 text-xs border border-gray-200 rounded-lg bg-white outline-none"
+                        value={formData.shippingType}
+                        onChange={(e) => setFormData({...formData, shippingType: e.target.value})}
+                      >
+                        <option value="بري">الشحن البري 🚚</option>
+                        <option value="بحري">الشحن البحري 🚢</option>
+                        <option value="جوي">الشحن الجوي ✈️</option>
+                      </select>
                     </div>
 
                     <div className="grid grid-cols-2 gap-2">
                       <div>
-                        <label className="block text-[10px] font-bold text-gray-500 mb-1">مدينة القيام</label>
-                        <input required type="text" className="w-full p-2 border border-gray-200 rounded-lg text-xs text-right focus:border-blue-500 outline-none transition-all font-sans font-medium" value={formData.origin} onChange={e => setFormData({...formData, origin: e.target.value})} />
+                        <label className="block text-[11px] text-gray-500 font-bold mb-1">المصدر *</label>
+                        <input 
+                          type="text" required placeholder="مدينة القيام"
+                          className="w-full p-2 text-xs border border-gray-200 rounded-lg"
+                          value={formData.origin}
+                          onChange={(e) => setFormData({...formData, origin: e.target.value})}
+                        />
                       </div>
                       <div>
-                        <label className="block text-[10px] font-bold text-gray-500 mb-1">مدينة الوصول</label>
-                        <input required type="text" className="w-full p-2 border border-gray-200 rounded-lg text-xs text-right focus:border-blue-500 outline-none transition-all font-sans font-medium" value={formData.destination} onChange={e => setFormData({...formData, destination: e.target.value})} />
+                        <label className="block text-[11px] text-gray-500 font-bold mb-1">الوجهة *</label>
+                        <input 
+                          type="text" required placeholder="مدينة الوصول"
+                          className="w-full p-2 text-xs border border-gray-200 rounded-lg"
+                          value={formData.destination}
+                          onChange={(e) => setFormData({...formData, destination: e.target.value})}
+                        />
                       </div>
                     </div>
 
-                    <div className="grid grid-cols-2 gap-2">
-                      <div>
-                        <label className="block text-[10px] font-bold text-gray-500 mb-1">نوع الشحن</label>
-                        <select className="w-full p-2 border border-gray-200 rounded-lg text-xs bg-white text-right focus:border-blue-500 outline-none font-sans font-medium" value={formData.shippingType} onChange={e => setFormData({...formData, shippingType: e.target.value})}>
-                          <option value="بري">🚚 شحن بري</option>
-                          <option value="بحري">🚢 شحن بحري</option>
-                          <option value="جوي">✈️ شحن جوي</option>
-                        </select>
-                      </div>
-                      <div>
-                        <label className="block text-[10px] font-bold text-gray-500 mb-1">الوزن التقريبي (طن)</label>
-                        <input type="number" step="0.1" className="w-full p-2 border border-gray-200 rounded-lg text-xs text-right focus:border-blue-500 outline-none font-mono" value={formData.weight} onChange={e => setFormData({...formData, weight: e.target.value})} />
-                      </div>
-                    </div>
-
-                    <div className="flex gap-2 pt-2">
-                      <button type="submit" className="flex-1 p-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-bold transition-all shadow-sm font-sans">إرسال طلب التسعير</button>
-                      <button type="button" onClick={() => { setShowForm(false); setShowErrorAction(false); }} className="flex-1 p-2 bg-gray-100 hover:bg-gray-200 text-gray-600 rounded-lg text-xs font-semibold transition-all font-sans">إلغاء</button>
-                    </div>
+                    <button 
+                      type="submit" disabled={isLoading}
+                      className="w-full bg-[#009695] text-white font-bold py-2 rounded-lg text-xs"
+                    >
+                      🚀 إرسال طلب التسعير اللوجستي
+                    </button>
                   </form>
                 )}
-                {isLoading && <div className="text-left text-[10px] text-gray-400 font-sans animate-pulse">جاري معالجة طلبك ذكياً وتأمين خطوط التواصل البريدي...</div>}
               </div>
 
-              {/* أزرار الإجراءات السريعة وحقل الإرسال */}
-              <div className="p-3 border-t border-gray-100 bg-white space-y-2.5 shrink-0">
-                <div className="flex gap-1.5 overflow-x-auto pb-1 scrollbar-none" dir="rtl">
-                  <button onClick={() => handleSendMessage('أريد طلب تسعيرة شحنة جديدة')} className="whitespace-nowrap text-[10px] font-bold bg-blue-50 hover:bg-blue-100/80 text-blue-700 px-3 py-1.5 rounded-full border border-blue-100 transition-all font-sans">📋 طلب تسعيرة</button>
-                  <button onClick={() => handleSendMessage('تتبع مسار شحنة')} className="whitespace-nowrap text-[10px] font-bold bg-slate-50 hover:bg-slate-100 text-slate-600 px-3 py-1.5 rounded-full border border-slate-200 transition-all font-sans">📦 تتبع شحنة</button>
-                </div>
-                <div className="flex gap-2">
-                  <button onClick={() => handleSendMessage(inputText)} className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-2 rounded-xl text-xs font-bold shadow-sm transition-all flex items-center justify-center font-sans">إرسال</button>
-                  <input
-                    type="text"
-                    className="flex-1 p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-right outline-none focus:border-blue-500 focus:bg-white transition-all font-sans font-semibold placeholder:text-gray-400"
-                    placeholder="اسألني عن التسعير، الوجهات، أو تتبع شحنتك..."
+              {!showForm && (
+                <div className="p-3 border-t bg-white flex gap-2">
+                  <input 
+                    type="text" 
                     value={inputText}
-                    onChange={e => setInputText(e.target.value)}
-                    onKeyDown={e => e.key === 'Enter' && handleSendMessage(inputText)}
+                    onChange={(e) => setInputText(e.target.value)}
+                    onKeyPress={(e) => e.key === 'Enter' && handleSendMessage(inputText)}
+                    placeholder={isTrackingMode ? "اكتب رقم البوليصة واضغط إرسال..." : "اكتب استفسارك هنا..."} 
+                    className="flex-1 p-2 text-xs border border-gray-200 rounded-xl outline-none font-sans"
                   />
+                  <button 
+                    onClick={() => handleSendMessage(inputText)}
+                    className="bg-[#009695] text-white px-4 rounded-xl text-xs font-bold"
+                  >
+                    إرسال
+                  </button>
                 </div>
-              </div>
+              )}
             </div>
           )}
         </div>
